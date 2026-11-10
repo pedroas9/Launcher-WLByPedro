@@ -1,0 +1,57 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>WartuneLab</title>
+    <link rel="stylesheet" href="style-wl.css">
+</head>
+<body>
+
+    <div class="launcher-container">
+
+        <!-- Marco decorativo del dragón -->
+        <img
+            src="dragon-flare.png"
+            class="dragon-frame"
+            alt=""
+        >
+
+        <!-- Formulario original -->
+        <div class="launcher">
+
+            <h1 class="titulo">WartuneLab</h1>
+            <p class="subtitulo">By PedroIgeo</p>
+
+            <label for="usuario">Nombre o Correo</label>
+            <input type="text" id="usuario"
+                placeholder="Ingresa tu nombre o correo">
+
+            <label for="clave">Contraseña</label>
+            <input type="password" id="clave"
+                placeholder="Ingresa tu contraseña">
+
+            <label for="servidor">Servidor</label>
+            <select id="servidor">
+                <option value="s1">S1: Balasor</option>
+            </select>
+
+            <div class="botones">
+                <button class="btn-iniciar" id="iniciar">
+                    Iniciar sesión
+                </button>
+
+                <button class="btn-cancelar" id="cancelar">
+                    Cancelar
+                </button>
+
+                <p id="mensaje" class="mensaje"></p>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="renderer-wb.js"></script>
+
+</body>
+</html>
