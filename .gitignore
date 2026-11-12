@@ -3,3 +3,6 @@ node_modules/
 *.log
 .env
 docs/login_test.py
+
+# Archivos generados por Electron Builder
+dist/

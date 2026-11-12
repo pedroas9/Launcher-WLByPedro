@@ -1,7 +1,7 @@
 
 {
   "name": "minilogin-wl-by-pedroigeo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MiniLogin independiente creado por PedroIgeo.",
   "main": "main.js",
   "scripts": {
@@ -26,8 +26,14 @@
     "directories": {
       "output": "dist"
     },
+    "extraResources": [
+      {
+        "from": "plugins",
+        "to": "plugins"
+      }
+    ],
     "win": {
-      "icon":"recursos/icon.ico",
+      "icon": "recursos/icon.ico",
       "target": [
         "nsis",
         "portable"
@@ -41,4 +47,5 @@
     }
   }
 }
+
 
