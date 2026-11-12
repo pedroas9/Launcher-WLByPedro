@@ -8,9 +8,7 @@ const netNode = require('net'); // TCP puro para medir el ping
 const SITE = 'https://wartunelab.com/';
 const HOST = 'wartunelab.com';
 const FLASH_VERSION = '32.0.0.363';
-const ALTO_TITULO = 34; // barra de título propia: métricas + botones
-const ALTO_INFO = 40; // fila del juego: servidor, personaje, nivel, hora
-const ALTO_BARRA = ALTO_TITULO + ALTO_INFO;
+const ALTO_BARRA = 40; // una sola fila: juego, ping y controles
 // Resolución recomendada por el juego para el área del cliente
 const ANCHO_JUEGO = 1360;
 const ALTO_JUEGO = 768;
@@ -146,9 +144,7 @@ const estadoDeVentana = (win) => ventanasJuego.find((v) => v.win === win) || nul
 // ---------- métricas de la barra de título ----------
 let relojMetricas = null;
 let refrescandoMetricas = false; // evita que dos lecturas se solapen
-const metricasVacias = () => ({ ping: null, perdida: null, cpu: null, ram: null, fps: null });
-const muestrasPing = [];
-const LADO_PING = 20;
+const metricasVacias = () => ({ ping: null });
 const PUERTO_JUEGO = 5000;
 
 // ping: tiempo hasta abrir una conexión TCP con el servidor del juego
@@ -184,35 +180,10 @@ async function refrescarMetricas() {
 }
 
 async function leerMetricas() {
-  // ping y paquetes perdidos: es el mismo servidor para todas las ventanas
   const ms = await medirPing();
-  muestrasPing.push(ms);
-  while (muestrasPing.length > LADO_PING) muestrasPing.shift();
-  const perdidos = muestrasPing.filter((x) => x === null).length;
-  const perdida = muestrasPing.length ? Math.round((perdidos / muestrasPing.length) * 100) : null;
-
-  // CPU y RAM: app.getAppMetrics() da el uso por proceso
-  let lista = [];
-  try { lista = app.getAppMetrics(); } catch (e) { /* sin métricas del sistema */ }
-  const ram = Math.round(lista.reduce((total, m) => total + (m.memory ? m.memory.workingSetSize : 0), 0) / 1024);
-
   for (const e of ventanasJuego) {
     if (!e.win || e.win.isDestroyed()) continue;
     e.metricas.ping = ms;
-    e.metricas.perdida = perdida;
-    e.metricas.ram = ram;
-
-    try {
-      const pid = e.vista.webContents.getOSProcessId();
-      const proceso = lista.find((m) => m.pid === pid);
-      if (proceso && proceso.cpu) e.metricas.cpu = Math.round(proceso.cpu.percentCPUUsage);
-    } catch (err) { /* se mantiene el último valor */ }
-
-    try {
-      const fps = await e.vista.webContents
-        .executeJavaScript('window.__wlFps ? window.__wlFps.fps : null', true);
-      if (typeof fps === 'number' && fps > 0) e.metricas.fps = fps;
-    } catch (err) { /* el juego aún no está listo */ }
   }
 }
 
@@ -225,7 +196,6 @@ function pararRelojSiVacio() {
   if (ventanasJuego.length === 0 && relojMetricas) {
     clearInterval(relojMetricas);
     relojMetricas = null;
-    muestrasPing.length = 0;
   }
 }
 
