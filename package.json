@@ -1,6 +1,6 @@
 {
   "name": "minilogin-wl-by-pedroigeo",
-  "version": "1.0.1",
+  "version": "0.1.0",
   "description": "MiniLogin independiente creado por PedroIgeo.",
   "main": "main.js",
   "scripts": {
