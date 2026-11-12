@@ -26,6 +26,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify Flash plugin present
+        run: |
+          if (!(Test-Path "plugins/pepflashplayer64.dll")) {
+            Write-Error "Missing plugins/pepflashplayer64.dll"
+          }
+
       - name: Build Windows installer
         run: npm run dist
 

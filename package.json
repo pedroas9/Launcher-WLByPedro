@@ -35,6 +35,9 @@
       "repo": "Launcher-WLByPedro",
       "releaseType": "release"
     },
+    "asarUnpack": [
+      "plugins/**"
+    ],
     "extraResources": [
       {
         "from": "plugins",

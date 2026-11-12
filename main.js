@@ -95,12 +95,20 @@ const GUION_FPS = `
 `;
 
 // ---------- plugin de Flash ---------
+// Pepper no puede cargar el .dll desde dentro del .asar; hace falta ruta real en disco.
 function rutaFlash() {
-  const candidatas = [
-    process.env.FLASH_PLUGIN_PATH,
-    path.join(__dirname, 'plugins', 'pepflashplayer64.dll'),
-    app.isPackaged ? path.join(process.resourcesPath, 'plugins', 'pepflashplayer64.dll') : null,
-  ].filter(Boolean);
+  const dll = 'pepflashplayer64.dll';
+  const candidatas = [];
+  if (process.env.FLASH_PLUGIN_PATH) candidatas.push(process.env.FLASH_PLUGIN_PATH);
+  if (app.isPackaged) {
+    candidatas.push(
+      path.join(process.resourcesPath, 'plugins', dll),
+      path.join(process.resourcesPath, 'app.asar.unpacked', 'plugins', dll),
+      path.join(path.dirname(process.execPath), 'resources', 'plugins', dll),
+    );
+  } else {
+    candidatas.push(path.join(__dirname, 'plugins', dll));
+  }
   return candidatas.find((p) => fs.existsSync(p)) || null;
 }
 const FLASH = rutaFlash();
@@ -362,7 +370,7 @@ function enviar({ method, url, headers, body }, particion) {
 // Hace el login en la partición indicada y devuelve los datos de la barra
 async function conectar(cuenta, password, particion) {
   if (!cuenta || !password) throw new Error('Escribe tu cuenta y contraseña.');
-  if (!FLASH) throw new Error('No encuentro pepflashplayer64.dll en la carpeta plugins.');
+  if (!rutaFlash()) throw new Error('No encuentro pepflashplayer64.dll en la carpeta plugins.');
 
   const ses = session.fromPartition(particion);
   await ses.cookies.set({ url: SITE, name: 'lab_weblang', value: 'es' });
