@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win",
+    "dist": "electron-builder --win --publish never",
     "dist:publish": "electron-builder --win --publish always"
   },
   "keywords": [
@@ -32,7 +32,8 @@
     "publish": {
       "provider": "github",
       "owner": "pedroas9",
-      "repo": "Launcher-WLByPedro"
+      "repo": "Launcher-WLByPedro",
+      "releaseType": "release"
     },
     "extraResources": [
       {
