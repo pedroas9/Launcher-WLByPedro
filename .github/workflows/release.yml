@@ -40,3 +40,4 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             dist/MiniLogin-WL-Setup-*.exe
+            dist/latest.yml
