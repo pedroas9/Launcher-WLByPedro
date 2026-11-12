@@ -1,16 +1,44 @@
+
 {
-  "name": "launcher-wlbypedro",
+  "name": "minilogin-wl-by-pedroigeo",
   "version": "1.0.0",
-  "description": "",
+  "description": "MiniLogin independiente creado por PedroIgeo.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "electron",
+    "launcher",
+    "minilogin"
+  ],
+  "author": "PedroIgeo",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^45.2.3"
+    "electron": "11.5.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.pedroigeo.miniloginwl",
+    "productName": "MiniLogin WL",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon":"recursos/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }
+

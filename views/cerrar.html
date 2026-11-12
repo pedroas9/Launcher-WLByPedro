@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cerrar WartuneLab</title>
+  <link rel="stylesheet" href="../styles/cerrar.css">
+</head>
+<body>
+  <div class="panel">
+    <h2>Cerrar WartuneLab</h2>
+    <p>&iquest;Qu&eacute; quieres hacer?</p>
+    <div class="botones">
+      <button id="cancelar">Cancelar</button>
+      <button id="reiniciar">Reiniciar</button>
+      <button id="salir">Salir</button>
+    </div>
+  </div>
+  <script>
+    const elegir = (opcion) => window.api && window.api.elegirCerrar(opcion);
+
+    document.getElementById('cancelar').addEventListener('click', () => elegir('cancelar'));
+    document.getElementById('reiniciar').addEventListener('click', () => elegir('reiniciar'));
+    document.getElementById('salir').addEventListener('click', () => elegir('salir'));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') elegir('cancelar');
+      if (e.key === 'Enter') elegir('salir');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+html, body { margin: 0; height: 100%; background: #141927; overflow: hidden; color: #e4eaff;
+             font-family: 'Segoe UI', Arial, sans-serif; user-select: none; }
+body { display: flex; flex-direction: column; }
+
+/* ── fila 1: barra de título de la ventana ── */
+#titulo { box-sizing: border-box; height: 34px; flex: 0 0 34px; display: flex; align-items: center;
+          background: #101526; border-bottom: 1px solid #26304d; -webkit-app-region: drag; }
+#marca { padding: 0 10px 0 12px; font-size: 12px; color: #a9bad9; white-space: nowrap; }
+#marca b { font-size: 12.5px; color: #fff; text-shadow: 0 0 8px rgba(38,124,229,.5); }
+#metricas { font-size: 11.5px; color: #9fb2d4; white-space: nowrap; overflow: hidden;
+            display: flex; align-items: center; }
+#metricas .m { margin-right: 14px; }
+#metricas .v { color: #fff; }
+#controles { margin-left: auto; display: flex; height: 100%; -webkit-app-region: no-drag; }
+.ctl { width: 46px; height: 100%; border: 0; background: transparent; color: #9aaaca;
+       font-size: 12px; font-family: inherit; cursor: pointer; transition: background .15s, color .15s; }
+.ctl:hover { background: rgba(38,124,229,.35); color: #fff; }
+.ctl.cerrar:hover { background: #c0392b; color: #fff; }
+
+/* ── fila 2: datos del juego ── */
+#barra { box-sizing: border-box; height: 40px; flex: 0 0 40px; display: flex; align-items: center; padding: 0 14px;
+         background: #141927; border-bottom: 1px solid #35445e; font-size: 13px; }
+.datos { display: flex; align-items: center; overflow: hidden; }
+.dato { margin-right: 22px; color: #9aaaca; white-space: nowrap; }
+.dato span { color: #fff; }
+
+/* botón de multicuentas (fila de datos) */
+.chip-multi { margin-left: auto; padding: 5px 10px; border: 1px solid #35445e;
+              border-radius: 6px; background: #182039; color: #a9bad9; font-size: 12px;
+              font-family: inherit; cursor: pointer; white-space: nowrap; transition: all .15s; }
+.chip-multi:hover:not(:disabled) { border-color: #267ce5; color: #fff; background: #202a3d; }
+.chip-multi:disabled { cursor: default; color: #6f7ea3; }

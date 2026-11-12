@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>WartuneLab</title>
+    <link rel="stylesheet" href="../styles/style-wl.css">
+    <link rel="stylesheet" href="../styles/s-line.css">
+</head>
+<body>
+
+    <div class="launcher-container">
+
+        <!-- Marco decorativo del dragón -->
+        <img
+            src="../recursos/dragon-form-h.png"
+            class="dragon-frame"
+            alt=""
+        >
+
+        <!-- Formulario -->
+        <div class="launcher">
+
+            <h1 class="titulo">WartuneLab</h1>
+            <p class="subtitulo">Client By PedroIgeo</p>
+
+            <div class="cuerpo">
+
+                <!-- columna izquierda: el formulario -->
+                <div class="columna-form">
+
+                    <label for="usuario">Nombre o Correo</label>
+                    <div class="combo">
+                        <input type="text" id="usuario" autocomplete="off"
+                            placeholder="Ingresa tu nombre o correo">
+                        <button type="button" id="verCuentas" class="flecha"
+                            title="Cuentas guardadas">&#9662;</button>
+                        <div id="listaCuentas" class="lista-cuentas" hidden></div>
+                    </div>
+
+                    <label for="clave">Contraseña</label>
+                    <input type="password" id="clave"
+                        placeholder="Ingresa tu contraseña">
+
+                    <label class="recordar" for="recordar">
+                        <input type="checkbox" id="recordar">
+                        Guardar contraseña en este equipo
+                    </label>
+
+                    <label for="servidor">Servidor</label>
+                    <select id="servidor">
+                        <option value="s1">S1: Balasor</option>
+                    </select>
+
+                    <div class="botones">
+                        <button class="btn-iniciar" id="iniciar">
+                            Iniciar sesión
+                        </button>
+
+                        <button class="btn-cancelar" id="cancelar">
+                            Cancelar
+                        </button>
+
+                        <p id="mensaje" class="mensaje"></p>
+                    </div>
+
+                </div>
+
+                <!-- columna derecha: mensaje de agradecimiento -->
+                <div class="lateral">
+                    <p class="fuerte">&iexcl;Gracias por utilizar nuestro launcher!</p>
+                    <p>Este peque&ntilde;o proyecto independiente fue creado con el prop&oacute;sito de facilitar tu conexi&oacute;n y hacer que acceder a tu aventura sea mucho m&aacute;s sencillo.</p>
+                    <p>Gracias por confiar en esta herramienta y formar parte de este peque&ntilde;o proyecto.</p>
+                    <p class="fuerte">&iexcl;Disfruta de tu aventura!</p>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script src="../scripts/renderer-wb.js"></script>
+
+</body>
+</html>

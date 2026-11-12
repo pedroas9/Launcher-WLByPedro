@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>WartuneLab Client By PedroIgeo</title>
+  <link rel="stylesheet" href="../styles/bar.css">
+</head>
+<body>
+  <div id="titulo">
+    <div id="marca"><b>WartuneLab Client</b> By PedroIgeo</div>
+    <div id="metricas">
+      <span class="m">[ Ping <span class="v" id="ping">—</span></span>
+      <span class="m">CPU <span class="v" id="cpu">—</span></span>
+      <span class="m">RAM <span class="v" id="ram">—</span></span>
+      <span class="m">FPS <span class="v" id="fps">—</span></span>
+      <span class="m">Pérdida <span class="v" id="perdida">—</span> ]</span>
+    </div>
+    <div id="controles">
+      <button class="ctl" id="min" title="Minimizar">&#9472;</button>
+      <button class="ctl" id="max" title="Maximizar">&#9633;</button>
+      <button class="ctl cerrar" id="cerrar" title="Cerrar">&#10005;</button>
+    </div>
+  </div>
+
+  <div id="barra">
+    <div class="datos">
+      <span class="dato">Servidor: <span id="srv">-</span></span>
+      <span class="dato">Personaje: <span id="pj">-</span></span>
+      <span class="dato">Nivel: <span id="nv">-</span></span>
+      <span class="dato">Hora servidor: <span id="hora">--:--:--</span></span>
+    </div>
+    <button class="chip-multi" id="multicuentas" title="Abrir otra cuenta">+ Multicuentas</button>
+  </div>
+
+  <script>
+    const wl = window.api || {};
+    const $ = (id) => document.getElementById(id);
+
+    /* botones de la ventana */
+    $('min').addEventListener('click', () => wl.minimizar && wl.minimizar());
+    $('max').addEventListener('click', () => wl.maximizar && wl.maximizar());
+    $('cerrar').addEventListener('click', () => wl.pedirCerrar && wl.pedirCerrar());
+    $('titulo').addEventListener('dblclick', (e) => {
+      if (!e.target.closest('#controles') && wl.maximizar) wl.maximizar();
+    });
+
+    /* datos del personaje y reloj del servidor */
+    (async () => {
+      const d = await wl.datosBarra();
+      if (!d) return;
+      $('srv').textContent = d.serverName;
+      $('pj').textContent = d.personaje || 'Sin crear';
+      $('nv').textContent = d.nivel != null ? d.nivel : '—';
+      const desfase = d.serverDate ? Date.parse(d.serverDate) - Date.now() : 0;
+      const pintar = () => { $('hora').textContent = new Date(Date.now() + desfase).toLocaleTimeString('es-ES'); };
+      pintar();
+      setInterval(pintar, 1000);
+    })();
+
+    /* multicuentas: abre otra ventana de login para añadir una cuenta */
+    document.getElementById('multicuentas').addEventListener('click', async () => {
+      const btn = document.getElementById('multicuentas');
+      const texto = btn.textContent;
+      try {
+        const res = await wl.multicuentas();
+        if (res && res.ok === false) {
+          btn.textContent = res.error || 'Máximo de cuentas';
+          btn.disabled = true;
+          setTimeout(() => { btn.textContent = texto; btn.disabled = false; }, 2200);
+        }
+      } catch (e) { /* sin conexión con el proceso principal */ }
+    });
+    /* métricas del sistema */
+    const texto = (v, sufijo) => (v == null ? '—' : v + sufijo);
+    const refrescarMetricas = async () => {
+      if (!wl.metricas) return;
+      try {
+        const m = await wl.metricas();
+        $('ping').textContent = texto(m.ping, ' ms');
+        $('cpu').textContent = texto(m.cpu, ' %');
+        $('ram').textContent = texto(m.ram, ' MB');
+        $('fps').textContent = texto(m.fps, '');
+        $('perdida').textContent = texto(m.perdida, ' %');
+      } catch (e) { /* si falla una lectura, se mantiene el último valor */ }
+    };
+    refrescarMetricas();
+    setInterval(refrescarMetricas, 1000);
+  </script>
+</body>
+</html>

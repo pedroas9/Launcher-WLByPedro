@@ -1,0 +1,354 @@
+
+:root {
+  --panel: rgba(20, 25, 39, 0.96);
+  --campo: #202a3d;
+  --borde: #35445e;
+  --texto: #e4eaff;
+  --texto-suave: #9aaaca;
+  --acento: #267ce5;
+  --acento-hover: #3999ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+body {
+  color: var(--texto);
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+.launcher-container {
+  position: relative;
+  width: 100%;
+}
+
+.dragon-frame {
+  display: block;
+  width: 100%;
+  height: auto;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Formulario dentro del hueco del marco (porcentajes medidos sobre tu captura) */
+.launcher {
+  position: absolute;
+  z-index: 1;
+  left: 14%;
+  width: 72%;
+  top: 32%;
+  height: 58%;
+  margin: 0;
+  padding: 18px 40px 14px;
+  background: var(--panel);
+  border: 1px solid rgba(80, 120, 180, 0.25);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* TÍTULO */
+.titulo {
+  margin: 0 0 4px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #dceaff;
+  text-shadow: 0 0 12px rgba(40, 130, 255, 0.5);
+}
+
+.subtitulo {
+  margin: 0 0 14px;
+  text-align: center;
+  font-size: 13px;
+  color: #83a9df;
+}
+
+/* ETIQUETAS */
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #a9c4ed;
+}
+
+/* CAMPOS */
+input, select {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+
+  background: var(--campo);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+
+  color: var(--texto);
+  font-size: 14px;
+  outline: none;
+
+  transition: all 0.2s;
+}
+
+input:focus, select:focus {
+  border-color: var(--acento);
+  box-shadow: 0 0 10px rgba(38, 124, 229, 0.3);
+}
+
+/* BOTONES */
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+button {
+  flex: 1;
+  padding: 9px;
+
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-iniciar {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(38, 124, 229, 0.2);
+}
+
+.btn-iniciar:hover {
+  background: var(--acento-hover);
+  box-shadow: 0 0 16px rgba(38, 124, 229, 0.5);
+}
+
+.btn-iniciar {
+  flex: 1.5; /* más ancho que Cancelar, como en la referencia */
+}
+
+.btn-cancelar {
+  background: transparent;
+  color: var(--texto-suave);
+}
+
+.btn-cancelar:hover {
+  background: var(--campo);
+  border-color: var(--acento);
+}
+
+/* MENSAJES */
+.mensaje {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: #9fbff0;
+  min-height: 18px;
+}
+/* CASILLA GUARDAR CONTRASEÑA */
+.recordar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -2px 0 12px;
+  font-size: 12.5px;
+  color: #a9c4ed;
+  cursor: pointer;
+}
+
+.recordar input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid #6b86b3;
+  border-radius: 3px;
+  box-shadow: none;
+  accent-color: #267ce5;
+}
+
+/* COMBO DE CUENTAS GUARDADAS */
+.combo {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.combo input {
+  margin-bottom: 0;
+  padding-right: 40px;
+}
+
+.flecha {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 34px;
+  height:35px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  background: var(--campo);
+  color: #a9c4ed;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.flecha:hover {
+  color: #fff;
+  border-color: var(--acento);
+}
+
+.lista-cuentas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  max-height: 170px;
+  overflow-y: auto;
+  background: #182039;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+  z-index: 20;
+}
+
+.lista-cuentas[hidden] {
+  display: none;
+}
+
+.item-cuenta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: #dfe8ff;
+  cursor: pointer;
+}
+
+.item-cuenta:hover {
+  background: var(--acento);
+  color: #fff;
+}
+
+.item-cuenta .texto {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-cuenta .quitar {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f07167;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.item-cuenta .quitar:hover {
+  color: #fff;
+}
+
+.item-cuenta.vacio {
+  color: var(--texto-suave);
+  cursor: default;
+}
+
+.item-cuenta.vacio:hover {
+  background: transparent;
+  color: var(--texto-suave);
+}
+
+.launcher-container {
+  -webkit-app-region: drag;
+}
+
+input, select, button, label, .lista-cuentas, .combo {
+  -webkit-app-region: no-drag;
+}
+
+.launcher {
+  padding: 10px 78px 20px;
+}
+
+/* Panel partido en dos: formulario a la izquierda y hueco a la derecha */
+.cuerpo {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 34px;
+  align-items: start;
+}
+
+.columna-form,
+.lateral {
+  min-width: 0;
+}
+
+/* los nombres y contraseñas del juego son cortos: el formulario no ocupa
+   todo el ancho de su columna (40% del panel) */
+.columna-form {
+  max-width: 300px;
+}
+
+
+/* lado derecho: mensaje de agradecimiento, centrado en la columna */
+.lateral {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #8fa6c9;
+}
+
+.lateral p {
+  margin: 0;
+}
+
+.lateral .fuerte {
+  font-weight: 700;
+  color: #d3e2fb;
+}
+
+.titulo { margin-top: 0; }
+.subtitulo { margin-bottom: 8px; }
+
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input[type="text"],
+input[type="password"] {
+  -webkit-user-select: text;
+  user-select: text;
+}

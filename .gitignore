@@ -1,4 +1,5 @@
-   node_modules/
-   .freebuff/
-   *.log
-   .env
+node_modules/
+.freebuff/
+*.log
+.env
+docs/login_test.py
