@@ -2,6 +2,7 @@
 const { app, BrowserWindow, BrowserView, ipcMain, session, net, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { initActualizaciones } = require('./updater');
 const netNode = require('net'); // TCP puro para medir el ping
 
 const SITE = 'https://wartunelab.com/';
@@ -627,5 +628,10 @@ ipcMain.handle('prefs-guardar', (_evento, { usuario, password, recordar }) => {
 
 ipcMain.handle('cuentas-borrar', (_evento, usuario) => borrarCuenta(usuario));
 
-app.whenReady().then(crearVentana);
+app.whenReady().then(() => {
+  crearVentana();
+  initActualizaciones({
+    hayVentanasJuego: () => ventanasJuego.length > 0,
+  });
+});
 app.on('window-all-closed', () => app.quit());

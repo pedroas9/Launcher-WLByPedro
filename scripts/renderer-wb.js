@@ -6,8 +6,74 @@ const campoClave = document.getElementById('clave');
 const casillaRecordar = document.getElementById('recordar');
 const listaCuentas = document.getElementById('listaCuentas');
 const btnVerCuentas = document.getElementById('verCuentas');
+const btnReiniciarActualizar = document.getElementById('reiniciarActualizar');
+const panelActualizacion = document.getElementById('panelActualizacion');
+const textoActualizacion = document.getElementById('textoActualizacion');
 
 let cuentas = [];
+
+function mostrarMensajeLogin(texto) {
+  msg.textContent = texto;
+}
+
+function mostrarActualizacion(texto, mostrarBotonReinicio) {
+  textoActualizacion.textContent = texto;
+  panelActualizacion.hidden = false;
+  btnReiniciarActualizar.hidden = !mostrarBotonReinicio;
+}
+
+if (window.api.onActualizacion) {
+  window.api.onActualizacion((ev) => {
+    if (!ev || !ev.estado) return;
+
+    switch (ev.estado) {
+      case 'checking':
+        break;
+      case 'available':
+        mostrarActualizacion(
+          ev.version
+            ? 'v' + ev.version + ' \u00b7 Descargando\u2026'
+            : 'Nueva versi\u00f3n \u00b7 Descargando\u2026',
+          false
+        );
+        break;
+      case 'progress':
+        mostrarActualizacion('Descargando ' + (ev.porcentaje || 0) + '%', false);
+        break;
+      case 'downloaded':
+        mostrarActualizacion(
+          ev.version
+            ? 'v' + ev.version + ' lista'
+            : 'Actualizaci\u00f3n lista',
+          true
+        );
+        break;
+      case 'not-available':
+        break;
+      case 'error':
+        if (ev.error) {
+          mostrarActualizacion(ev.error, false);
+        }
+        break;
+      default:
+        break;
+    }
+  });
+}
+
+btnReiniciarActualizar.addEventListener('click', async () => {
+  btnReiniciarActualizar.disabled = true;
+  try {
+    const res = await window.api.reiniciarParaActualizar();
+    if (res && !res.ok) {
+      mostrarActualizacion(res.error || 'No se pudo instalar la actualizaci\u00f3n.', true);
+      btnReiniciarActualizar.disabled = false;
+    }
+  } catch (e) {
+    mostrarActualizacion('No se pudo instalar la actualizaci\u00f3n.', true);
+    btnReiniciarActualizar.disabled = false;
+  }
+});
 
 // Dibuja la lista de cuentas guardadas
 function pintarCuentas() {
@@ -93,7 +159,7 @@ async function jugar() {
   const recordar = casillaRecordar.checked;
 
   btnIniciar.disabled = true;
-  msg.textContent = 'Conectando...';
+  mostrarMensajeLogin('Conectando...');
 
   let res;
   try {
@@ -106,7 +172,7 @@ async function jugar() {
   // esta ventana se cierra y ya no podría escribir nada
   if (res.ok) campoClave.value = '';
 
-  msg.textContent = res.ok ? 'Abriendo el juego...' : res.error;
+  mostrarMensajeLogin(res.ok ? 'Abriendo el juego...' : res.error);
   btnIniciar.disabled = false;
 }
 

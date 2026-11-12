@@ -20,6 +20,13 @@
         <!-- Formulario -->
         <div class="launcher">
 
+            <aside id="panelActualizacion" class="panel-actualizacion" hidden aria-live="polite">
+                <p id="textoActualizacion" class="texto-actualizacion"></p>
+                <button type="button" class="btn-actualizar" id="reiniciarActualizar" hidden>
+                    Reiniciar e instalar
+                </button>
+            </aside>
+
             <h1 class="titulo">WartuneLab</h1>
             <p class="subtitulo">Client By PedroIgeo</p>
 
@@ -29,7 +36,7 @@
                 <div class="columna-form">
 
                     <label for="usuario">Nombre o Correo</label>
-                    <div class="combo">
+                    <div class="campo-marco combo">
                         <input type="text" id="usuario" autocomplete="off"
                             placeholder="Ingresa tu nombre o correo">
                         <button type="button" id="verCuentas" class="flecha"
@@ -47,9 +54,12 @@
                     </label>
 
                     <label for="servidor">Servidor</label>
-                    <select id="servidor">
-                        <option value="s1">S1: Balasor</option>
-                    </select>
+                    <div class="campo-marco">
+                        <select id="servidor">
+                            <option value="s1">S1: Balasor</option>
+                        </select>
+                        <span class="flecha-indicador" aria-hidden="true">&#9662;</span>
+                    </div>
 
                     <div class="botones">
                         <button class="btn-iniciar" id="iniciar">

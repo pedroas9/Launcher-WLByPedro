@@ -12,4 +12,11 @@ contextBridge.exposeInMainWorld('api', {
   maximizar: () => ipcRenderer.invoke('ventana-maximizar'),
   pedirCerrar: () => ipcRenderer.invoke('cerrar-pedir'),
   elegirCerrar: (opcion) => ipcRenderer.invoke('cerrar-elegir', opcion),
+  onActualizacion: (callback) => {
+    const listener = (_evento, payload) => callback(payload);
+    ipcRenderer.on('actualizacion-evento', listener);
+    return () => ipcRenderer.removeListener('actualizacion-evento', listener);
+  },
+  reiniciarParaActualizar: () => ipcRenderer.invoke('actualizacion-reiniciar'),
+  comprobarActualizacion: () => ipcRenderer.invoke('actualizacion-comprobar'),
 });
