@@ -18,7 +18,14 @@ function mostrarMensajeLogin(texto) {
 }
 
 function mostrarActualizacion(texto, mostrarBotonReinicio) {
-  textoActualizacion.textContent = texto;
+  const mensaje = (texto || '').trim();
+  if (!mensaje) {
+    panelActualizacion.hidden = true;
+    textoActualizacion.textContent = '';
+    btnReiniciarActualizar.hidden = true;
+    return;
+  }
+  textoActualizacion.textContent = mensaje;
   panelActualizacion.hidden = false;
   btnReiniciarActualizar.hidden = !mostrarBotonReinicio;
 }

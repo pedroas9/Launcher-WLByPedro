@@ -175,6 +175,10 @@ button {
   border-color: #6aaef0;
 }
 
+.panel-actualizacion[hidden] {
+  display: none !important;
+}
+
 .panel-actualizacion {
   align-self: center;
   width: 100%;
