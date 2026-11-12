@@ -31,7 +31,7 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "PedroIgeo",
+      "owner": "pedroas9",
       "repo": "Launcher-WLByPedro"
     },
     "extraResources": [
