@@ -19,4 +19,5 @@ contextBridge.exposeInMainWorld('api', {
   },
   reiniciarParaActualizar: () => ipcRenderer.invoke('actualizacion-reiniciar'),
   comprobarActualizacion: () => ipcRenderer.invoke('actualizacion-comprobar'),
+  versionApp: () => ipcRenderer.invoke('app-version'),
 });

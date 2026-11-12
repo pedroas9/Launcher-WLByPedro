@@ -9,6 +9,7 @@ const btnVerCuentas = document.getElementById('verCuentas');
 const btnReiniciarActualizar = document.getElementById('reiniciarActualizar');
 const panelActualizacion = document.getElementById('panelActualizacion');
 const textoActualizacion = document.getElementById('textoActualizacion');
+const versionApp = document.getElementById('versionApp');
 
 let cuentas = [];
 
@@ -138,6 +139,14 @@ document.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') listaCuentas.hidden = true;
 });
+
+// Versión instalada (package.json / electron-builder)
+(async () => {
+  try {
+    const v = await window.api.versionApp();
+    if (versionApp && v) versionApp.textContent = 'Version ' + v;
+  } catch (e) { /* sin versión */ }
+})();
 
 // Rellena el formulario con lo último que se guardó
 (async () => {

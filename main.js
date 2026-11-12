@@ -628,6 +628,8 @@ ipcMain.handle('prefs-guardar', (_evento, { usuario, password, recordar }) => {
 
 ipcMain.handle('cuentas-borrar', (_evento, usuario) => borrarCuenta(usuario));
 
+ipcMain.handle('app-version', () => app.getVersion());
+
 app.whenReady().then(() => {
   crearVentana();
   initActualizaciones({
