@@ -30,6 +30,7 @@ body {
 .launcher-container {
   position: relative;
   width: 100%;
+  -webkit-app-region: drag;
 }
 
 .dragon-frame {
@@ -50,7 +51,7 @@ body {
   top: 32%;
   height: 58%;
   margin: 0;
-  padding: 18px 40px 14px;
+  padding: 10px 78px 20px;
   background: var(--panel);
   border: 1px solid rgba(80, 120, 180, 0.25);
   border-radius: 10px;
@@ -126,6 +127,7 @@ button {
 }
 
 .btn-iniciar {
+  flex: 1.5; /* más ancho que Cancelar, como en la referencia */
   background: var(--acento);
   border-color: var(--acento);
   color: #fff;
@@ -136,10 +138,6 @@ button {
 .btn-iniciar:hover {
   background: var(--acento-hover);
   box-shadow: 0 0 16px rgba(38, 124, 229, 0.5);
-}
-
-.btn-iniciar {
-  flex: 1.5; /* más ancho que Cancelar, como en la referencia */
 }
 
 .btn-cancelar {
@@ -479,35 +477,20 @@ button {
   color: var(--texto-suave);
 }
 
-.launcher-container {
-  -webkit-app-region: drag;
-}
-
 input, select, button, label, .lista-cuentas, .campo-marco, .panel-actualizacion {
   -webkit-app-region: no-drag;
 }
 
-.launcher {
-  padding: 10px 78px 20px;
-}
-
-/* Panel partido en dos: formulario a la izquierda y hueco a la derecha */
+/* Panel partido en dos: formulario a la izquierda y mensaje a la derecha.
+   Las columnas y el hueco los define s-line.css, junto con la divisoria. */
 .cuerpo {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 34px;
   align-items: start;
 }
 
 .columna-form,
 .lateral {
   min-width: 0;
-}
-
-/* los nombres y contraseñas del juego son cortos: el formulario no ocupa
-   todo el ancho de su columna (40% del panel) */
-.columna-form {
-  max-width: 300px;
 }
 
 
@@ -537,9 +520,6 @@ input, select, button, label, .lista-cuentas, .campo-marco, .panel-actualizacion
   font-weight: 700;
   color: #d3e2fb;
 }
-
-.titulo { margin-top: 0; }
-.subtitulo { margin-bottom: 8px; }
 
 body {
   -webkit-user-select: none;

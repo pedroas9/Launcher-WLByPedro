@@ -495,15 +495,6 @@ ipcMain.handle('jugar', async (evento, { cuenta, password, recordar }) => {
   }
 });
 
-// Abrir otra cuenta desde la barra de una ventana ya abierta
-ipcMain.handle('multicuentas', () => {
-  if (ventanasJuego.length >= MAX_VENTANAS) {
-    return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas.' };
-  }
-  crearVentana();
-  return { ok: true };
-});
-
 // ---------- menú de cuentas: ventana flotante bajo el botón "+ Cuenta" ----------
 // La barra solo mide 40 px (el juego va en un BrowserView debajo), así que el
 // desplegable no puede vivir dentro de ella: se abre en su propia ventanita.
@@ -1176,11 +1167,6 @@ ipcMain.handle('prefs-leer', () => {
     recordar: !!p.recordar,
     cuentas: listaCuentas(p),
   };
-});
-
-ipcMain.handle('prefs-guardar', (_evento, { usuario, password, recordar }) => {
-  if (usuario) guardarCuenta(usuario, password, recordar);
-  return true;
 });
 
 ipcMain.handle('cuentas-borrar', (_evento, usuario) => borrarCuenta(usuario));
