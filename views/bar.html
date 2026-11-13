@@ -31,7 +31,7 @@
       <button class="chip-multi chip-multi--reiniciar" id="reiniciar" title="Reconectar esta cuenta">
         <span class="chip-multi__ico" aria-hidden="true">&#8635;</span>Reiniciar
       </button>
-      <button class="chip-favorito" id="favorito" title="Marcar como favorito" aria-pressed="false" aria-label="Favorito">
+      <button class="chip-favorito" id="favorito" title="Macro de Astros" aria-pressed="false" aria-label="Macro de Astros">
         <span class="estrella" aria-hidden="true"></span>
       </button>
       <button class="chip-multi" id="accBtn" title="Cuentas guardadas">+ Cuenta</button>
@@ -64,13 +64,21 @@
       if (!e.target.closest('.zona-der') && wl.maximizar) wl.maximizar();
     });
 
-    // estrella: dos estados, apagada y marcada (por ahora solo cambia de color)
+    // estrella: abre el addon del macro; se enciende mientras está activo
     const btnFavorito = $('favorito');
-    btnFavorito.addEventListener('click', () => {
-      const activo = btnFavorito.classList.toggle('activo');
+    const pintarMacro = (activo) => {
+      btnFavorito.classList.toggle('activo', !!activo);
       btnFavorito.setAttribute('aria-pressed', activo ? 'true' : 'false');
-      btnFavorito.title = activo ? 'Quitar de favoritos' : 'Marcar como favorito';
+      btnFavorito.title = activo ? 'Macro de Astros (activo)' : 'Macro de Astros';
+    };
+    btnFavorito.addEventListener('click', () => {
+      if (wl.abrirMacro) wl.abrirMacro();
     });
+    if (wl.onMacroActivo) wl.onMacroActivo(pintarMacro);
+    if (wl.macroEstado) {
+      wl.macroEstado().then((e) => pintarMacro(e && e.activo)).catch(() => {});
+    }
+    btnFavorito.title = 'Macro de Astros';
 
     // "+ Cuenta": la barra solo mide 40 px, así que el menú se abre en su
     // propia ventanita pegada al borde inferior del botón

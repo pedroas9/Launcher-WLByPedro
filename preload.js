@@ -29,6 +29,22 @@ contextBridge.exposeInMainWorld('api', {
   abrirAgregarCuenta: () => ipcRenderer.invoke('agregar-cuenta-abrir'),
   cuentaCrear: (datos) => ipcRenderer.invoke('cuenta-crear', datos),
   cerrarDialogo: () => ipcRenderer.invoke('dialogo-cerrar'),
+  // addon: macro de astros
+  abrirMacro: () => ipcRenderer.invoke('macro-abrir'),
+  macroIniciar: (config) => ipcRenderer.invoke('macro-iniciar', config),
+  macroDetener: () => ipcRenderer.invoke('macro-detener'),
+  macroEstado: () => ipcRenderer.invoke('macro-estado'),
+  macroCerrar: () => ipcRenderer.invoke('macro-cerrar'),
+  onMacroEvento: (callback) => {
+    const listener = (_evento, payload) => callback(payload);
+    ipcRenderer.on('macro-evento', listener);
+    return () => ipcRenderer.removeListener('macro-evento', listener);
+  },
+  onMacroActivo: (callback) => {
+    const listener = (_evento, activo) => callback(activo);
+    ipcRenderer.on('macro-activo', listener);
+    return () => ipcRenderer.removeListener('macro-activo', listener);
+  },
   onActualizacion: (callback) => {
     const listener = (_evento, payload) => callback(payload);
     ipcRenderer.on('actualizacion-evento', listener);

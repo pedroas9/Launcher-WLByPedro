@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Macro de Astros</title>
+  <link rel="stylesheet" href="ventana.css">
+</head>
+<body>
+  <div class="ma">
+
+    <header class="ma-cab">
+      <span class="ma-estrella" aria-hidden="true"></span>
+      <span class="ma-titulo">Macro de Astros</span>
+      <span class="ma-tag">addon</span>
+      <button class="ma-x" id="maX" title="Cerrar" aria-label="Cerrar"></button>
+    </header>
+
+    <div class="ma-estado" id="maEstado">
+      <span class="ma-luz" aria-hidden="true"></span>
+      <span class="ma-texto" id="maTexto">Detenido</span>
+      <span class="ma-clics" id="maClics">0 clics</span>
+    </div>
+
+    <div class="ma-bloque">
+      <div class="ma-fila">
+        <span class="ma-etiqueta">Clics por segundo</span>
+        <span class="ma-valor"><b id="maCps">4</b> cps</span>
+      </div>
+      <input type="range" class="ma-slider" id="maSlider" min="1" max="20" step="0.5" value="4"
+        aria-label="Clics por segundo">
+      <div class="ma-escala" aria-hidden="true">
+        <span>1</span><span>10</span><span>20</span>
+      </div>
+      <p class="ma-nota">Intervalo entre clics: <b id="maIntervalo">0,25 s</b></p>
+    </div>
+
+    <div class="ma-botones">
+      <button class="ma-iniciar" id="maIniciar">Iniciar <kbd>F9</kbd></button>
+      <button class="ma-detener" id="maDetener" disabled>Detener <kbd>F8</kbd></button>
+    </div>
+
+    <p class="ma-aviso" id="maAviso" hidden></p>
+
+    <footer class="ma-pie" id="maPie">
+      Mantén el juego en primer plano con la ventana de Astrales abierta.
+    </footer>
+  </div>
+
+  <script>
+    const wl = window.api || {};
+    const $ = (id) => document.getElementById(id);
+
+    let activo = false;
+
+    const aviso = (texto, error) => {
+      const caja = $('maAviso');
+      if (!texto) {
+        caja.hidden = true;
+        caja.textContent = '';
+        caja.classList.remove('error');
+        return;
+      }
+      caja.hidden = false;
+      caja.textContent = texto;
+      caja.classList.toggle('error', !!error);
+    };
+
+    const pintarIntervalo = () => {
+      const cps = Number($('maSlider').value) || 1;
+      $('maCps').textContent = String(cps).replace('.', ',');
+      $('maIntervalo').textContent = (1 / cps).toFixed(2).replace('.', ',') + ' s';
+    };
+
+    const estado = (corriendo, texto) => {
+      activo = !!corriendo;
+      $('maEstado').classList.toggle('activo', activo);
+      $('maTexto').textContent = texto || (activo ? 'Activo' : 'Detenido');
+      $('maIniciar').disabled = activo;
+      $('maDetener').disabled = !activo;
+      $('maSlider').disabled = activo;
+      $('maPie').textContent = activo
+        ? 'Esta ventana tapa el juego: al iniciar se oculta sola. Clic en la estrella para verla u ocultarla.'
+        : 'Mantén el juego en primer plano con la ventana de Astrales abierta.';
+    };
+
+    $('maSlider').addEventListener('input', pintarIntervalo);
+
+    async function iniciar() {
+      if (activo) return;
+      aviso('');
+      estado(true, 'Iniciando…');
+      $('maClics').textContent = '0 clics';
+      let res;
+      try {
+        res = await wl.macroIniciar({ cps: Number($('maSlider').value) || 4 });
+      } catch (e) {
+        res = { ok: false, error: 'No se pudo iniciar el macro.' };
+      }
+      if (!res || !res.ok) {
+        estado(false, 'Detenido');
+        aviso((res && res.error) || 'No se pudo iniciar el macro.', true);
+      }
+    }
+
+    async function detener() {
+      if (!activo) return;
+      estado(false, 'Deteniendo…');
+      try { await wl.macroDetener(); } catch (e) { /* se cierra igual */ }
+    }
+
+    $('maIniciar').addEventListener('click', iniciar);
+    $('maDetener').addEventListener('click', detener);
+
+    $('maX').addEventListener('click', () => {
+      if (activo) detener();
+      if (wl.macroCerrar) wl.macroCerrar();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (activo) detener();
+        if (wl.macroCerrar) wl.macroCerrar();
+      }
+    });
+
+    if (wl.onMacroEvento) {
+      wl.onMacroEvento((ev) => {
+        if (!ev || !ev.ev) return;
+        switch (ev.ev) {
+          case 'inicio':
+            estado(true, 'Activo · ' + (ev.cps || '') + ' cps');
+            break;
+          case 'clic':
+            $('maClics').textContent = ev.n + ' clics';
+            break;
+          case 'aviso':
+            aviso(ev.texto || '');
+            break;
+          case 'error':
+            aviso(ev.texto || 'Error del macro.', true);
+            break;
+          case 'fin':
+            estado(false, 'Detenido');
+            aviso(ev.motivo ? 'Terminó: ' + ev.motivo : '');
+            break;
+          default:
+            break;
+        }
+      });
+    }
+
+    pintarIntervalo();
+    estado(false, 'Detenido');
+  </script>
+</body>
+</html>

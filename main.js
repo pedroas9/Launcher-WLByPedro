@@ -1,5 +1,6 @@
 'use strict';
-const { app, BrowserWindow, BrowserView, ipcMain, session, net, screen } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, session, net, screen, globalShortcut } = require('electron');
+const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { initActualizaciones } = require('./updater');
@@ -871,6 +872,232 @@ ipcMain.handle('cerrar-elegir', async (evento, opcion) => {
   if (aviso) aviso.close();
 });
 
+// ---------- addon: macro de astros ----------
+// El motor es astros.py (Python + OpenCV). El launcher le pasa la configuración
+// por un JSON y lee sus eventos por stdout en líneas JSON.
+const ANCHO_MACRO = 380;
+const ALTO_MACRO = 362;
+let ventanaMacro = null;
+let macroProc = null;
+let macroConfig = { cps: 4 };
+
+// El addon vive en addons/macro-astros/. Empaquetado va fuera del asar porque
+// Python necesita el archivo y las plantillas como archivos reales del disco.
+function dirAddonMacro() {
+  const rel = path.join('addons', 'macro-astros');
+  if (app.isPackaged) {
+    const suelto = path.join(process.resourcesPath, 'app.asar.unpacked', rel);
+    if (fs.existsSync(suelto)) return suelto;
+    return path.join(process.resourcesPath, rel);
+  }
+  return path.join(__dirname, rel);
+}
+
+function datosAddonMacro() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(dirAddonMacro(), 'addon.json'), 'utf8')) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+const rutaScriptMacro = () => path.join(dirAddonMacro(), 'astros.py');
+const rutaVistaMacro = () => path.join(dirAddonMacro(), 'ventana.html');
+const rutaConfigMacro = () => path.join(app.getPath('userData'), 'macro-config.json');
+
+function mostrarVentanaMacro() {
+  if (!ventanaMacro || ventanaMacro.isDestroyed()) return;
+  try {
+    ventanaMacro.show();
+    ventanaMacro.focus();
+  } catch (e) { /* ventana cerrándose */ }
+}
+
+function ocultarVentanaMacro() {
+  if (!ventanaMacro || ventanaMacro.isDestroyed()) return;
+  try { ventanaMacro.hide(); } catch (e) { /* ventana cerrándose */ }
+}
+
+function avisarMacro(activo) {
+  ventanasJuego.forEach((v) => {
+    if (!v.win || v.win.isDestroyed()) return;
+    try { v.win.webContents.send('macro-activo', !!activo); } catch (e) { /* ventana cerrando */ }
+  });
+}
+
+function enviarAMacro(datos) {
+  if (!ventanaMacro || ventanaMacro.isDestroyed()) return;
+  try { ventanaMacro.webContents.send('macro-evento', datos); } catch (e) { /* ventana cerrando */ }
+}
+
+function iniciarMacro(config) {
+  if (macroProc) return { ok: false, error: 'El macro ya está en marcha.' };
+
+  const cps = Math.min(20, Math.max(1, Number(config && config.cps) || 4));
+  macroConfig = { cps };
+  try {
+    fs.writeFileSync(rutaConfigMacro(), JSON.stringify({ cps }), 'utf8');
+  } catch (e) {
+    return { ok: false, error: 'No pude escribir la configuración del macro.' };
+  }
+
+  let p;
+  try {
+    p = spawn(process.env.WL_PYTHON || 'python', [rutaScriptMacro(), '--config', rutaConfigMacro()], {
+      cwd: dirAddonMacro(),
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+  } catch (e) {
+    return { ok: false, error: 'No encontré Python instalado: el macro lo necesita.' };
+  }
+
+  macroProc = p;
+  let resto = '';
+
+  p.stdout.setEncoding('utf8');
+  p.stdout.on('data', (trozo) => {
+    resto += trozo;
+    let i;
+    while ((i = resto.indexOf('\n')) >= 0) {
+      const linea = resto.slice(0, i).trim();
+      resto = resto.slice(i + 1);
+      if (!linea) continue;
+      if (linea.charAt(0) === '{') {
+        try { enviarAMacro(JSON.parse(linea)); } catch (e) { /* línea rara */ }
+      } else {
+        enviarAMacro({ ev: 'log', texto: linea });
+      }
+    }
+  });
+
+  p.stderr.setEncoding('utf8');
+  p.stderr.on('data', (trozo) => enviarAMacro({ ev: 'log', texto: String(trozo).slice(0, 400) }));
+
+  p.on('error', (e) => {
+    if (macroProc === p) macroProc = null;
+    avisarMacro(false);
+    mostrarVentanaMacro();
+    const falta = e && e.code === 'ENOENT';
+    enviarAMacro({
+      ev: 'error',
+      texto: falta
+        ? 'No encontré Python instalado en este equipo: el macro lo necesita.'
+        : (e.message || 'No se pudo iniciar el macro.'),
+    });
+    enviarAMacro({ ev: 'fin', motivo: 'no se pudo iniciar' });
+  });
+
+  p.on('exit', () => {
+    if (macroProc === p) macroProc = null;
+    avisarMacro(false);
+    // al detenerse, la ventana vuelve para ver el motivo
+    mostrarVentanaMacro();
+  });
+
+  avisarMacro(true);
+  // mientras corre, la ventana se oculta: si no, tapa el juego y el macro
+  // no puede ver el panel de Astrales
+  ocultarVentanaMacro();
+  return { ok: true };
+}
+
+function detenerMacro(motivo) {
+  if (!macroProc) return;
+  const p = macroProc;
+  try { p.stdin.write('stop\n'); } catch (e) { /* ya cerrado */ }
+  // si no obedece, se cierra a la fuerza
+  setTimeout(() => {
+    try { if (macroProc === p) p.kill(); } catch (e) { /* ya cerrado */ }
+  }, 2500);
+  enviarAMacro({ ev: 'aviso', texto: motivo || 'deteniendo…' });
+}
+
+function registrarAtajosMacro() {
+  const atajo = (tecla, fn) => {
+    try {
+      globalShortcut.unregister(tecla);
+      globalShortcut.register(tecla, fn);
+    } catch (e) { /* tecla ocupada por otro programa */ }
+  };
+  atajo('F9', () => { if (!macroProc) iniciarMacro(macroConfig); });
+  atajo('F8', () => { if (macroProc) detenerMacro('detenido con F8'); });
+}
+
+function desregistrarAtajosMacro() {
+  ['F8', 'F9'].forEach((tecla) => {
+    try { globalShortcut.unregister(tecla); } catch (e) { /* nada registrado */ }
+  });
+}
+
+function abrirVentanaMacro(base) {
+  if (ventanaMacro && !ventanaMacro.isDestroyed()) {
+    ventanaMacro.show();
+    ventanaMacro.focus();
+    return;
+  }
+  const padre = base && !base.isDestroyed() ? base : null;
+  const b = padre ? padre.getBounds() : { x: 0, y: 0, width: ANCHO_MACRO, height: ALTO_MACRO };
+
+  const w = new BrowserWindow({
+    width: ANCHO_MACRO,
+    height: ALTO_MACRO,
+    x: Math.round(b.x + (b.width - ANCHO_MACRO) / 2),
+    y: Math.round(b.y + (b.height - ALTO_MACRO) / 2),
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    hasShadow: false,
+    resizable: false,
+    maximizable: false,
+    skipTaskbar: false,
+    alwaysOnTop: true,
+    show: false,
+    title: datosAddonMacro().nombre || 'Macro de Astros',
+    parent: padre || undefined,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  ventanaMacro = w;
+  w.loadFile(rutaVistaMacro());
+  w.once('ready-to-show', () => w.show());
+  w.on('closed', () => {
+    if (ventanaMacro === w) ventanaMacro = null;
+    desregistrarAtajosMacro();
+    detenerMacro('ventana del macro cerrada');
+  });
+  registrarAtajosMacro();
+}
+
+ipcMain.handle('macro-abrir', (evento) => {
+  const origen = ventanaDe(evento);
+  const base = origen && origen.getParentWindow ? (origen.getParentWindow() || origen) : origen;
+
+  // si está corriendo y ya se ve, la estrella la vuelve a ocultar
+  if (ventanaMacro && !ventanaMacro.isDestroyed() && ventanaMacro.isVisible() && macroProc) {
+    ocultarVentanaMacro();
+    return;
+  }
+  abrirVentanaMacro(base);
+});
+
+ipcMain.handle('macro-iniciar', (_evento, config) => iniciarMacro(config));
+
+ipcMain.handle('macro-detener', () => {
+  detenerMacro('deteniendo…');
+  return { ok: true };
+});
+
+ipcMain.handle('macro-estado', () => ({ activo: !!macroProc }));
+
+ipcMain.handle('macro-cerrar', (evento) => {
+  const w = ventanaDe(evento);
+  if (w && !w.isDestroyed()) w.close();
+});
+
 // ---------- preferencias del login (lista de cuentas) ----------
 const rutaPrefs = () => path.join(app.getPath('userData'), 'preferencias.json');
 const MAX_CUENTAS = 12;
@@ -966,4 +1193,14 @@ app.whenReady().then(() => {
     hayVentanasJuego: () => ventanasJuego.length > 0,
   });
 });
+// si se cierra el launcher, el macro no puede quedarse clicando solo
+app.on('before-quit', () => {
+  if (macroProc) {
+    try { macroProc.stdin.write('stop\n'); } catch (e) { /* ya cerrado */ }
+    try { macroProc.kill(); } catch (e) { /* ya cerrado */ }
+    macroProc = null;
+  }
+  desregistrarAtajosMacro();
+});
+
 app.on('window-all-closed', () => app.quit());

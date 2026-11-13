@@ -1,0 +1,14 @@
+{
+  "id": "macro-astros",
+  "nombre": "Macro de Astros",
+  "version": "1.0.0",
+  "tipo": "python",
+  "descripcion": "Clics automáticos en los astros con detección por imágenes. F9 inicia, F8 detiene.",
+  "autor": "PedroIgeo",
+  "motor": "astros.py",
+  "ventana": "ventana.html",
+  "estilo": "ventana.css",
+  "plantillas": "plantillas",
+  "atajos": { "iniciar": "F9", "detener": "F8" },
+  "config": { "cps": 4 }
+}

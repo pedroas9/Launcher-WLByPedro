@@ -36,7 +36,8 @@
       "releaseType": "release"
     },
     "asarUnpack": [
-      "plugins/**"
+      "plugins/**",
+      "addons/macro-astros/**"
     ],
     "extraResources": [
       {

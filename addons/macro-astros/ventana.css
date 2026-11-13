@@ -1,0 +1,323 @@
+/* Ventana del addon "Macro de Astros" */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  color: #e4eaff;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 12px;
+  user-select: none;
+}
+
+.ma {
+  box-sizing: border-box;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 14px;
+  background: linear-gradient(180deg, #17253c 0%, #0f1827 100%);
+  border: 1px solid #2a3f5e;
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- cabecera que se arrastra ---------- */
+.ma-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  margin: 0 -16px 12px;
+  padding: 0 10px 0 14px;
+  border-bottom: 1px solid #22324d;
+  background: linear-gradient(180deg, #1a2a45 0%, #14233a 100%);
+  border-radius: 12px 12px 0 0;
+  -webkit-app-region: drag;
+}
+
+.ma-estrella {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  background: #f0cb7c;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  filter: drop-shadow(0 0 4px rgba(240, 203, 124, 0.8));
+}
+
+.ma-titulo {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.ma-tag {
+  padding: 1px 6px;
+  border: 1px solid rgba(233, 173, 53, 0.45);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e9c07a;
+}
+
+.ma-x {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.ma-x:hover {
+  background: #d6454f;
+}
+
+.ma-x::before,
+.ma-x::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 1.5px;
+  background: #9fb2cf;
+  border-radius: 1px;
+}
+
+.ma-x::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.ma-x::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.ma-x:hover::before,
+.ma-x:hover::after {
+  background: #fff;
+}
+
+/* ---------- estado ---------- */
+.ma-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  margin-bottom: 14px;
+  border: 1px solid #2a3f5e;
+  border-radius: 8px;
+  background: rgba(12, 20, 33, 0.65);
+}
+
+.ma-luz {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #6f7ea3;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.ma-texto {
+  font-size: 11.5px;
+  color: #a8b6d4;
+}
+
+.ma-clics {
+  margin-left: auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #8fa6c9;
+}
+
+.ma-estado.activo {
+  border-color: rgba(233, 173, 53, 0.5);
+  background: rgba(233, 173, 53, 0.1);
+}
+
+.ma-estado.activo .ma-luz {
+  background: #f0cb7c;
+  box-shadow: 0 0 8px rgba(240, 203, 124, 0.9);
+}
+
+.ma-estado.activo .ma-texto {
+  color: #ffe0a0;
+  font-weight: 600;
+}
+
+/* ---------- ritmo ---------- */
+.ma-bloque {
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1px solid #22324d;
+  border-radius: 9px;
+  background: rgba(16, 26, 43, 0.6);
+}
+
+.ma-fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ma-etiqueta {
+  font-size: 11.5px;
+  color: #a8b6d4;
+}
+
+.ma-valor {
+  font-size: 11px;
+  color: #8fa6c9;
+}
+
+.ma-valor b {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+.ma-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #267ce5, #e9ad35);
+  outline: none;
+  cursor: pointer;
+}
+
+.ma-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #e9ad35;
+  box-shadow: 0 0 8px rgba(233, 173, 53, 0.6);
+  cursor: pointer;
+}
+
+.ma-slider:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ma-escala {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 9.5px;
+  color: #6f7ea3;
+}
+
+.ma-nota {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #8fa6c9;
+}
+
+.ma-nota b {
+  color: #dfe8ff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- botones ---------- */
+.ma-botones {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.ma-iniciar,
+.ma-detener {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ma-iniciar {
+  background: linear-gradient(180deg, #f0cb7c 0%, #e9ad35 100%);
+  color: #24190a;
+}
+
+.ma-iniciar:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffe0a0 0%, #f0bc4f 100%);
+}
+
+.ma-detener {
+  border: 1px solid rgba(53, 68, 94, 0.9);
+  background: rgba(24, 32, 57, 0.65);
+  color: #b4c2de;
+}
+
+.ma-detener:hover:not(:disabled) {
+  border-color: #d6454f;
+  background: rgba(214, 69, 79, 0.16);
+  color: #fff;
+}
+
+.ma-iniciar:disabled,
+.ma-detener:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ma-iniciar kbd,
+.ma-detener kbd {
+  padding: 1px 5px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+/* ---------- aviso y pie ---------- */
+.ma-aviso {
+  margin: 10px 0 0;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: rgba(230, 180, 60, 0.12);
+  border: 1px solid rgba(230, 180, 60, 0.3);
+  font-size: 11px;
+  line-height: 1.35;
+  color: #f0d78a;
+}
+
+.ma-aviso[hidden] {
+  display: none;
+}
+
+.ma-aviso.error {
+  background: rgba(220, 90, 90, 0.12);
+  border-color: rgba(220, 90, 90, 0.35);
+  color: #f0a0a0;
+}
+
+.ma-pie {
+  margin-top: 10px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #6f7ea3;
+}
