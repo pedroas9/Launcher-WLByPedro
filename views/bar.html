@@ -7,19 +7,33 @@
 </head>
 <body>
   <div id="titulo">
-    <div id="marca"><b>WartuneLab</b></div>
-    <div id="info" class="info">
-      <span class="dato">Servidor: <span id="srv">-</span></span>
-      <span class="dato">Personaje: <span id="pj">-</span></span>
-      <span class="dato">Nivel: <span id="nv">-</span></span>
-      <span class="dato">Hora: <span id="hora">--:--:--</span></span>
-      <span class="dato ping">Ping: <span id="ping">—</span></span>
+    <div class="zona zona-izq" id="marca"><b>WartuneLab</b></div>
+
+    <div class="zona zona-centro">
+      <div class="tray-estado" role="status" aria-live="polite">
+        <span class="chip chip-jugador" title="Personaje y nivel">
+          <b id="pj">—</b>
+          <small id="nv">Lv —</small>
+        </span>
+        <span class="tray-sep" aria-hidden="true"></span>
+        <span class="dato" id="srv" title="Servidor">—</span>
+        <span class="tray-sep" aria-hidden="true"></span>
+        <span class="dato dato-hora" id="hora" title="Hora del servidor">--:--:--</span>
+        <span class="tray-sep" aria-hidden="true"></span>
+        <span class="chip-ping ping-sin" id="pingChip" title="Latencia">
+          <span class="punto" id="pingPunto" aria-hidden="true"></span>
+          <span id="ping">—</span>
+        </span>
+      </div>
     </div>
-    <button class="chip-multi" id="multicuentas" title="Abrir otra cuenta">+ Multicuentas</button>
-    <div id="controles">
-      <button class="ctl" id="min" title="Minimizar">&#9472;</button>
-      <button class="ctl" id="max" title="Maximizar">&#9633;</button>
-      <button class="ctl cerrar" id="cerrar" title="Cerrar">&#10005;</button>
+
+    <div class="zona zona-der">
+      <button class="chip-multi" id="multicuentas" title="Abrir otra cuenta">+ Cuenta</button>
+      <div id="controles">
+        <button class="ctl" id="min" title="Minimizar">&#9472;</button>
+        <button class="ctl" id="max" title="Maximizar">&#9633;</button>
+        <button class="ctl cerrar" id="cerrar" title="Cerrar">&#10005;</button>
+      </div>
     </div>
   </div>
 
@@ -31,20 +45,33 @@
     $('max').addEventListener('click', () => wl.maximizar && wl.maximizar());
     $('cerrar').addEventListener('click', () => wl.pedirCerrar && wl.pedirCerrar());
     $('titulo').addEventListener('dblclick', (e) => {
-      if (!e.target.closest('#controles') && wl.maximizar) wl.maximizar();
+      if (!e.target.closest('.zona-der') && wl.maximizar) wl.maximizar();
     });
+
+    let linear0 = null;
+    let at0 = null;
+    const dos = (n) => String(n).padStart(2, '0');
+    const pintarHora = () => {
+      if (linear0 == null || at0 == null) {
+        $('hora').textContent = '--:--:--';
+        return;
+      }
+      const t = new Date(linear0 + (Date.now() - at0));
+      $('hora').textContent = `${dos(t.getUTCHours())}:${dos(t.getUTCMinutes())}:${dos(t.getUTCSeconds())}`;
+    };
 
     (async () => {
       const d = await wl.datosBarra();
       if (!d) return;
-      $('srv').textContent = d.serverName;
+      $('srv').textContent = d.serverName || '—';
       $('pj').textContent = d.personaje || 'Sin crear';
-      $('nv').textContent = d.nivel != null ? d.nivel : '—';
-      const desfase = d.serverDate ? Date.parse(d.serverDate) - Date.now() : 0;
-      const pintar = () => { $('hora').textContent = new Date(Date.now() + desfase).toLocaleTimeString('es-ES'); };
-      pintar();
-      setInterval(pintar, 1000);
+      $('nv').textContent = d.nivel != null ? 'Lv ' + d.nivel : 'Lv —';
+      linear0 = d.serverClockLinear;
+      at0 = d.serverClockAt;
+      pintarHora();
     })();
+
+    setInterval(pintarHora, 1000);
 
     document.getElementById('multicuentas').addEventListener('click', async () => {
       const btn = document.getElementById('multicuentas');
@@ -52,18 +79,37 @@
       try {
         const res = await wl.multicuentas();
         if (res && res.ok === false) {
-          btn.textContent = res.error || 'Máximo de cuentas';
+          btn.textContent = res.error || 'Máximo';
           btn.disabled = true;
           setTimeout(() => { btn.textContent = etiqueta; btn.disabled = false; }, 2200);
         }
       } catch (e) { /* sin conexión con el proceso principal */ }
     });
 
+    const chipPing = $('pingChip');
+    const pintarPing = (ms) => {
+      const chip = chipPing;
+      chip.classList.remove('ping-ok', 'ping-medio', 'ping-alto', 'ping-sin');
+      if (ms == null) {
+        $('ping').textContent = '—';
+        chip.classList.add('ping-sin');
+        return;
+      }
+      $('ping').textContent = ms + ' ms';
+      if (ms < 80) chip.classList.add('ping-ok');
+      else if (ms <= 150) chip.classList.add('ping-medio');
+      else chip.classList.add('ping-alto');
+    };
+
     const refrescarPing = async () => {
       if (!wl.metricas) return;
       try {
         const m = await wl.metricas();
-        $('ping').textContent = m.ping == null ? '—' : m.ping + ' ms';
+        pintarPing(m.ping);
+        if (m.serverClockLinear != null && m.serverClockAt != null) {
+          linear0 = m.serverClockLinear;
+          at0 = m.serverClockAt;
+        }
       } catch (e) { /* se mantiene el último valor */ }
     };
     refrescarPing();

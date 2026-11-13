@@ -144,8 +144,50 @@ const estadoDeVentana = (win) => ventanasJuego.find((v) => v.win === win) || nul
 // ---------- métricas de la barra de título ----------
 let relojMetricas = null;
 let refrescandoMetricas = false; // evita que dos lecturas se solapen
-const metricasVacias = () => ({ ping: null });
+const metricasVacias = () => ({ ping: null, serverClockLinear: null, serverClockAt: null });
 const PUERTO_JUEGO = 5000;
+
+// Hora de reloj del juego (campo serverTime de /api/version, no la zona horaria de Windows).
+let relojServidor = null; // { linear, at }
+let tickSincroniaHora = 0;
+
+const parseHoraServidor = (texto) => {
+  if (!texto || typeof texto !== 'string') return null;
+  const m = texto.trim().match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+};
+
+const anclarHoraServidor = (texto) => {
+  const linear = parseHoraServidor(texto);
+  if (linear == null) return;
+  relojServidor = { linear, at: Date.now() };
+};
+
+const horaServidorParaBarra = () => (
+  relojServidor
+    ? { serverClockLinear: relojServidor.linear, serverClockAt: relojServidor.at }
+    : { serverClockLinear: null, serverClockAt: null }
+);
+
+async function sincronizarHoraServidor(particion) {
+  try {
+    const p = await enviar({
+      method: 'GET',
+      url: SITE + 'api/version',
+      headers: {
+        'User-Agent': UA,
+        'Accept': 'application/json',
+        'Referer': SITE,
+        'X-Requested-With': 'portal',
+      },
+    }, particion);
+    const j = JSON.parse(p.texto || '{}');
+    if (j.serverTime) anclarHoraServidor(j.serverTime);
+  } catch (e) {
+    /* se mantiene el último ancla */
+  }
+}
 
 // ping: tiempo hasta abrir una conexión TCP con el servidor del juego
 // (TCP puro de Node, con tope de tiempo para que nunca se quede colgado)
@@ -172,6 +214,11 @@ async function refrescarMetricas() {
   if (refrescandoMetricas) return;
   refrescandoMetricas = true;
   try {
+    tickSincroniaHora += 1;
+    if (tickSincroniaHora % 60 === 0) {
+      const activa = ventanasJuego.find((v) => v.win && !v.win.isDestroyed());
+      if (activa) await sincronizarHoraServidor(activa.particion);
+    }
     await leerMetricas();
   } finally {
     // pase lo que pase, se libera el candado para la siguiente lectura
@@ -381,7 +428,15 @@ async function conectar(cuenta, password, particion) {
     // si el portal no contesta, la barra muestra el personaje sin crear
   }
 
-  return { cuenta, serverName: 'S1: Balasor', serverDate: r.fecha, personaje, nivel };
+  await sincronizarHoraServidor(particion);
+
+  return {
+    cuenta,
+    serverName: 'S1: Balasor',
+    personaje,
+    nivel,
+    ...horaServidorParaBarra(),
+  };
 }
 
 // ---------- IPC ----------
@@ -469,12 +524,14 @@ function cerrarVentanaJuego(win) {
 
 ipcMain.handle('datos-barra', (evento) => {
   const estado = estadoDeEvento(evento);
-  return estado ? estado.datos : null;
+  if (!estado) return null;
+  return { ...estado.datos, ...horaServidorParaBarra() };
 });
 
 ipcMain.handle('metricas', (evento) => {
   const estado = estadoDeEvento(evento);
-  return estado ? estado.metricas : metricasVacias();
+  if (!estado) return metricasVacias();
+  return { ...estado.metricas, ...horaServidorParaBarra() };
 });
 
 // ---------- ventana sin marco: barra propia ----------
