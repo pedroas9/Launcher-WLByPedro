@@ -69,7 +69,7 @@ body {
 }
 
 .subtitulo {
-  margin: 0 0 14px;
+  margin: 0 0 8px;
   text-align: center;
   font-size: 13px;
   color: #83a9df;
@@ -152,14 +152,64 @@ button {
   border-color: var(--acento);
 }
 
-/* MENSAJES */
-.mensaje {
-  flex-basis: 100%;
-  margin: 4px 0 0;
+/* ESTADO LOGIN (carga / error): una línea, sin caja */
+.estado-login[hidden] {
+  display: none !important;
+}
+
+.estado-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  -webkit-app-region: no-drag;
+}
+
+.estado-login__texto {
+  margin: 0;
   text-align: center;
   font-size: 13px;
-  color: #9fbff0;
-  min-height: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #a9c4ed;
+}
+
+.estado-login__spinner {
+  display: none;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(154, 170, 202, 0.35);
+  border-top-color: #7eb0ef;
+  border-radius: 50%;
+  animation: estado-login-girar 0.7s linear infinite;
+}
+
+.estado-login--cargando .estado-login__spinner {
+  display: block;
+}
+
+.estado-login--cargando .estado-login__texto {
+  color: #c5d8f5;
+}
+
+.estado-login--error .estado-login__texto {
+  color: #e8a0a0;
+}
+
+.estado-login--ok .estado-login__texto {
+  color: #9fd4b8;
+}
+
+@keyframes estado-login-girar {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .btn-actualizar {

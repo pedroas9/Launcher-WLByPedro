@@ -1,5 +1,6 @@
 const btnIniciar = document.getElementById('iniciar');
 const btnCancelar = document.getElementById('cancelar');
+const estadoLogin = document.getElementById('estadoLogin');
 const msg = document.getElementById('mensaje');
 const campoUsuario = document.getElementById('usuario');
 const campoClave = document.getElementById('clave');
@@ -10,11 +11,20 @@ const btnReiniciarActualizar = document.getElementById('reiniciarActualizar');
 const panelActualizacion = document.getElementById('panelActualizacion');
 const textoActualizacion = document.getElementById('textoActualizacion');
 const versionApp = document.getElementById('versionApp');
-
 let cuentas = [];
 
-function mostrarMensajeLogin(texto) {
-  msg.textContent = texto;
+function mostrarMensajeLogin(texto, tipo) {
+  const t = (texto || '').trim();
+  if (!t) {
+    estadoLogin.hidden = true;
+    estadoLogin.className = 'estado-login';
+    msg.textContent = '';
+    return;
+  }
+  estadoLogin.hidden = false;
+  msg.textContent = t;
+  const clase = tipo === 'cargando' || tipo === 'error' || tipo === 'ok' ? tipo : 'info';
+  estadoLogin.className = 'estado-login estado-login--' + clase;
 }
 
 function mostrarActualizacion(texto, mostrarBotonReinicio) {
@@ -175,7 +185,7 @@ async function jugar() {
   const recordar = casillaRecordar.checked;
 
   btnIniciar.disabled = true;
-  mostrarMensajeLogin('Conectando...');
+  mostrarMensajeLogin('Conectando con el servidor…', 'cargando');
 
   let res;
   try {
@@ -186,9 +196,13 @@ async function jugar() {
 
   // el usuario y la contraseña los guarda el proceso principal: al entrar,
   // esta ventana se cierra y ya no podría escribir nada
-  if (res.ok) campoClave.value = '';
+  if (res.ok) {
+    campoClave.value = '';
+    mostrarMensajeLogin('Abriendo el juego…', 'cargando');
+    return;
+  }
 
-  mostrarMensajeLogin(res.ok ? 'Abriendo el juego...' : res.error);
+  mostrarMensajeLogin(res.error || 'No se pudo iniciar sesión.', 'error');
   btnIniciar.disabled = false;
 }
 

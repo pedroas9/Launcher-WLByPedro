@@ -23,6 +23,11 @@
             <h1 class="titulo">WartuneLab</h1>
             <p class="subtitulo" id="versionApp">Version …</p>
 
+            <div id="estadoLogin" class="estado-login" hidden role="status" aria-live="polite">
+                <span class="estado-login__spinner" aria-hidden="true"></span>
+                <p id="mensaje" class="estado-login__texto"></p>
+            </div>
+
             <div class="cuerpo">
 
                 <!-- columna izquierda: el formulario -->
@@ -62,8 +67,6 @@
                         <button class="btn-cancelar" id="cancelar">
                             Cancelar
                         </button>
-
-                        <p id="mensaje" class="mensaje"></p>
                     </div>
 
                 </div>

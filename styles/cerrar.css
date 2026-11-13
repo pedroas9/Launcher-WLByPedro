@@ -1,18 +1,84 @@
-html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
-             font-family: 'Segoe UI', Arial, sans-serif; color: #e4eaff; }
-.panel { position: absolute; inset: 10px; box-sizing: border-box; display: flex;
-         flex-direction: column; padding: 18px 20px;
-         background: rgba(20, 25, 39, 0.98); border: 1px solid #35445e;
-         border-radius: 12px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
-         -webkit-app-region: drag; user-select: none; }
-h2 { margin: 0 0 6px; font-size: 16px; font-weight: 700;
-     text-shadow: 0 0 10px rgba(38, 124, 229, 0.45); }
-p { margin: 0 0 14px; font-size: 13px; color: #9aaaca; }
-.botones { margin-top: auto; display: flex; gap: 10px; -webkit-app-region: no-drag; }
-button { flex: 1; padding: 10px; font-size: 13px; font-family: inherit; cursor: pointer;
-         border: 1px solid #35445e; border-radius: 8px;
-         background: #202a3d; color: #e4eaff; transition: all .15s; }
-button:hover { border-color: #267ce5; }
-#reiniciar:hover { border-color: #f2c14e; color: #ffe9b0; }
-#salir { background: #267ce5; border-color: #267ce5; color: #fff; font-weight: 600; }
-#salir:hover { background: #3999ff; }
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  border-radius: 8px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #e4eaff;
+  user-select: none;
+}
+
+.panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 100%;
+  padding: 16px 18px;
+  background: #141927;
+  border: 1px solid #35445e;
+  border-radius: 8px;
+  -webkit-app-region: drag;
+}
+
+.cabecera {
+  -webkit-app-region: drag;
+}
+
+.titulo {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #dce4f8;
+}
+
+.sub {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #8fa0c2;
+}
+
+.botones {
+  display: flex;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.btn {
+  flex: 1;
+  padding: 8px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #35445e;
+  border-radius: 6px;
+  background: transparent;
+  color: #c5d0ea;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.btn:hover {
+  border-color: #4a5f82;
+  background: #1a2235;
+  color: #e4eaff;
+}
+
+#reiniciar:hover {
+  border-color: #6a8ab8;
+}
+
+.btn-salir {
+  border-color: #3d6eb0;
+  color: #b8d4f8;
+}
+
+.btn-salir:hover {
+  border-color: #267ce5;
+  color: #fff;
+  background: #1e3558;
+}

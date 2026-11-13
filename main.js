@@ -553,8 +553,8 @@ ipcMain.handle('ventana-maximizar', (evento) => {
 function preguntarCerrar(padre) {
   if (!padre) return;
   const aviso = new BrowserWindow({
-    width: 420,
-    height: 210,
+    width: 392,
+    height: 168,
     center: true,
     parent: padre,
     modal: true,
@@ -564,7 +564,7 @@ function preguntarCerrar(padre) {
     maximizable: false,
     transparent: true,
     backgroundColor: '#00000000',
-    hasShadow: true,
+    hasShadow: false,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
