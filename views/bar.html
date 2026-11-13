@@ -28,6 +28,9 @@
     </div>
 
     <div class="zona zona-der">
+      <button class="chip-multi chip-multi--reiniciar" id="reiniciar" title="Reconectar esta cuenta">
+        <span class="chip-multi__ico" aria-hidden="true">&#8635;</span>Reiniciar
+      </button>
       <button class="chip-multi" id="multicuentas" title="Abrir otra cuenta">+ Cuenta</button>
       <div id="controles">
         <button class="ctl" id="min" title="Minimizar">&#9472;</button>
@@ -72,6 +75,22 @@
     })();
 
     setInterval(pintarHora, 1000);
+
+    document.getElementById('reiniciar').addEventListener('click', async () => {
+      const btn = document.getElementById('reiniciar');
+      if (btn.disabled) return;
+      btn.disabled = true;
+      try {
+        const res = await wl.reiniciarJuego && wl.reiniciarJuego();
+        if (res && res.ok === false) {
+          btn.title = res.error || 'Error';
+          setTimeout(() => { btn.title = 'Reconectar esta cuenta'; }, 2500);
+          btn.disabled = false;
+        }
+      } catch (e) {
+        btn.disabled = false;
+      }
+    });
 
     document.getElementById('multicuentas').addEventListener('click', async () => {
       const btn = document.getElementById('multicuentas');

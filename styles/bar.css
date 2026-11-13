@@ -181,6 +181,17 @@ body {
   -webkit-app-region: no-drag;
 }
 
+.chip-multi--reiniciar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chip-multi__ico {
+  font-size: 14px;
+  line-height: 1;
+}
+
 .chip-multi {
   flex-shrink: 0;
   margin-right: 4px;

@@ -572,13 +572,12 @@ ipcMain.handle('ventana-maximizar', (evento) => {
   if (w.isMaximized()) w.unmaximize(); else w.maximize();
 });
 
-// El botón de cerrar no cierra: abre un aviso centrado en la pantalla
-// para elegir Salir, Reiniciar o Cancelar y evitar cierres por error.
+// El botón de cerrar no cierra: pide confirmación (Salir o Cancelar).
 function preguntarCerrar(padre) {
   if (!padre) return;
   const aviso = new BrowserWindow({
-    width: 392,
-    height: 168,
+    width: 340,
+    height: 148,
     center: true,
     parent: padre,
     modal: true,
@@ -603,6 +602,14 @@ ipcMain.handle('cerrar-pedir', (evento) => {
   preguntarCerrar(ventanaDe(evento));
 });
 
+ipcMain.handle('juego-reiniciar', async (evento) => {
+  const win = ventanaDe(evento);
+  if (!win) return { ok: false, error: 'Ventana no encontrada.' };
+  const ok = await reiniciarJuego(win);
+  if (ok) return { ok: true };
+  return { ok: false, error: 'No se pudo reconectar esta cuenta.' };
+});
+
 ipcMain.handle('cerrar-elegir', async (evento, opcion) => {
   const aviso = ventanaDe(evento);
   const padre = aviso && aviso.getParentWindow();
@@ -610,14 +617,6 @@ ipcMain.handle('cerrar-elegir', async (evento, opcion) => {
   if (opcion === 'salir') {
     // solo se cierra esta ventana: las demás cuentas siguen abiertas
     if (padre) cerrarVentanaJuego(padre); else app.quit();
-    return;
-  }
-
-  if (opcion === 'reiniciar') {
-    if (aviso) aviso.destroy();
-    const ok = await reiniciarJuego(padre);
-    // si no hay credenciales en memoria, se relanza la aplicación entera
-    if (!ok) { app.relaunch(); app.exit(0); }
     return;
   }
 

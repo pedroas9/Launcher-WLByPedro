@@ -9,11 +9,10 @@
   <div class="panel">
     <div class="cabecera" aria-hidden="false">
       <p class="titulo">Cerrar ventana</p>
-      <p class="sub">Reiniciar reconecta esta cuenta. Salir la cierra.</p>
+      <p class="sub">Salir cierra solo esta cuenta. Las demás siguen abiertas.</p>
     </div>
     <div class="botones">
       <button type="button" class="btn" id="cancelar">Cancelar</button>
-      <button type="button" class="btn" id="reiniciar">Reiniciar</button>
       <button type="button" class="btn btn-salir" id="salir">Salir</button>
     </div>
   </div>
@@ -21,7 +20,6 @@
     const elegir = (opcion) => window.api && window.api.elegirCerrar(opcion);
 
     document.getElementById('cancelar').addEventListener('click', () => elegir('cancelar'));
-    document.getElementById('reiniciar').addEventListener('click', () => elegir('reiniciar'));
     document.getElementById('salir').addEventListener('click', () => elegir('salir'));
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') elegir('cancelar');

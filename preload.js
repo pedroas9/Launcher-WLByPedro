@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   maximizar: () => ipcRenderer.invoke('ventana-maximizar'),
   pedirCerrar: () => ipcRenderer.invoke('cerrar-pedir'),
   elegirCerrar: (opcion) => ipcRenderer.invoke('cerrar-elegir', opcion),
+  reiniciarJuego: () => ipcRenderer.invoke('juego-reiniciar'),
   onActualizacion: (callback) => {
     const listener = (_evento, payload) => callback(payload);
     ipcRenderer.on('actualizacion-evento', listener);
