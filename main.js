@@ -273,11 +273,18 @@ function restringir(wc) {
   wc.on('new-window', (e) => e.preventDefault());
 }
 
-// Abre una ventana de juego para una cuenta ya conectada
-function abrirJuego({ datos, credenciales }) {
-  const slot = slotLibre();
-  if (!slot) return null;
-  const particion = particionDe(slot);
+// Abre una ventana de juego para una cuenta ya conectada.
+// slot/particion deben coincidir con los usados en conectar(); si no, las cookies
+// del login quedan en otra partición y el juego pierde la sesión.
+function abrirJuego({ datos, credenciales, slot, particion }) {
+  let slotUsado = slot;
+  if (slotUsado == null) {
+    slotUsado = slotLibre();
+    if (!slotUsado) return null;
+  } else if (ventanasJuego.some((v) => v.slot === slotUsado)) {
+    return null;
+  }
+  const particionUsada = particion || particionDe(slotUsado);
 
   // si la pantalla es más pequeña que la resolución del juego se recorta
   const area = screen.getPrimaryDisplay().workAreaSize;
@@ -302,11 +309,11 @@ function abrirJuego({ datos, credenciales }) {
     },
   });
   // sin proxy del sistema en esta sesión: quita latencia de en medio
-  session.fromPartition(particion).setProxy({ mode: 'direct' }).catch(() => {});
+  session.fromPartition(particionUsada).setProxy({ mode: 'direct' }).catch(() => {});
 
   const vista = new BrowserView({
     webPreferences: {
-      partition: particion,
+      partition: particionUsada,
       plugins: true,
       contextIsolation: true,
       nodeIntegration: false,
@@ -316,7 +323,15 @@ function abrirJuego({ datos, credenciales }) {
   try { vista.setBackgroundColor(COLOR_FONDO); } catch (e) { /* versiones antiguas de Electron */ }
   win.setBrowserView(vista);
 
-  const estado = { win, vista, datos, credenciales, slot, particion, metricas: metricasVacias() };
+  const estado = {
+    win,
+    vista,
+    datos,
+    credenciales,
+    slot: slotUsado,
+    particion: particionUsada,
+    metricas: metricasVacias(),
+  };
   // el estado se registra antes de cargar la barra: si no, su primera petición
   // de datos llegaría antes de existir la ventana en la lista
   ventanasJuego.push(estado);
@@ -409,6 +424,11 @@ async function conectar(cuenta, password, particion) {
 
   const ok = await ses.cookies.get({ url: SITE, name: 'wartune_session' });
   if (!ok.length) throw new Error('Cuenta o contraseña incorrecta.');
+  try {
+    await ses.cookies.flushStore();
+  } catch (e) {
+    /* en algunas builds no está disponible */
+  }
 
   // personaje (nombre y nivel) para la barra: /api/portal devuelve el usuario
   let personaje = null;
@@ -447,11 +467,13 @@ ipcMain.handle('jugar', async (evento, { cuenta, password, recordar }) => {
     }
     const slot = slotLibre();
     if (!slot) throw new Error('Máximo ' + MAX_VENTANAS + ' cuentas abiertas.');
+    const particion = particionDe(slot);
 
-    const datos = await conectar(cuenta, password, particionDe(slot));
+    const datos = await conectar(cuenta, password, particion);
     // se guarda aquí porque al entrar se cierra la ventana del login
     guardarCuenta(cuenta, password, recordar);
-    abrirJuego({ datos, credenciales: { cuenta, password } });
+    const abierto = abrirJuego({ datos, credenciales: { cuenta, password }, slot, particion });
+    if (!abierto) throw new Error('No se pudo abrir la ventana del juego.');
 
     const login = BrowserWindow.fromWebContents(evento.sender);
     if (login) login.close();
@@ -488,11 +510,13 @@ async function reiniciarJuego(ventana) {
   try { estado.vista.webContents.setAudioMuted(true); } catch (e) { /* sin audio */ }
 
   // libera su hueco para que la ventana nueva reutilice la misma partición
+  const { slot, particion, credenciales } = estado;
   const i = ventanasJuego.indexOf(estado);
   if (i >= 0) ventanasJuego.splice(i, 1);
 
-  abrirJuego({ datos, credenciales: estado.credenciales });
+  const abierto = abrirJuego({ datos, credenciales, slot, particion });
   cerrarVentanaJuego(ventana);
+  if (!abierto) return false;
   return true;
 }
 
