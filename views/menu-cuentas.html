@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cuentas</title>
+  <link rel="stylesheet" href="../styles/menu-cuentas.css">
+</head>
+<body>
+  <div class="mc" id="mc">
+    <div class="mc-cab">
+      <span class="mc-titulo" id="mcTitulo">Cuentas</span>
+      <span class="mc-abiertas" id="mcAbiertas"></span>
+    </div>
+
+    <div class="mc-lista" id="mcLista"></div>
+    <div class="mc-aviso" id="mcAviso" hidden></div>
+
+    <div class="mc-pie">
+      <button class="mc-add" id="mcAdd">+ Añadir cuenta</button>
+    </div>
+  </div>
+
+  <script>
+    const wl = window.api || {};
+    const $ = (id) => document.getElementById(id);
+
+    let cuentas = [];
+    let abiertas = 0;
+    let maximo = 6;
+    let borrando = '';
+    let ocupado = false;
+
+    const aviso = (texto, error) => {
+      const caja = $('mcAviso');
+      if (!texto) {
+        caja.hidden = true;
+        caja.textContent = '';
+        caja.classList.remove('error');
+        return;
+      }
+      caja.hidden = false;
+      caja.textContent = texto;
+      caja.classList.toggle('error', !!error);
+    };
+
+    // la ventana se ajusta a lo que mida el contenido
+    const avisarAlto = () => {
+      if (!wl.menuAlto) return;
+      wl.menuAlto(Math.ceil($('mc').getBoundingClientRect().height) + 2);
+    };
+
+    async function abrir(c) {
+      if (ocupado) return;
+      if (!c.tienePassword) {
+        aviso('Esa cuenta no tiene la contraseña guardada. Quítala y vuelve a añadirla.', true);
+        return;
+      }
+      ocupado = true;
+      aviso('Conectando con ' + c.usuario + '…');
+      let res;
+      try {
+        res = await wl.menuCuentaAbrir(c.usuario);
+      } catch (e) {
+        res = { ok: false, error: 'No se pudo conectar.' };
+      }
+      ocupado = false;
+      if (res && res.ok) return; // el proceso principal cierra el menú al abrir la ventana
+      aviso((res && res.error) || 'No se pudo abrir la cuenta.', true);
+    }
+
+    function confirmarBorrado(c) {
+      const el = document.createElement('div');
+      el.className = 'mc-conf';
+      el.innerHTML = '<span class="mc-conf-txt"></span><button class="mc-no">No</button><button class="mc-si">Sí</button>';
+      el.querySelector('.mc-conf-txt').textContent = '¿Quitar ' + c.usuario + '?';
+      el.querySelector('.mc-no').onclick = (e) => {
+        e.stopPropagation();
+        borrando = '';
+        pintar();
+      };
+      el.querySelector('.mc-si').onclick = async (e) => {
+        e.stopPropagation();
+        let d = null;
+        try { d = await wl.menuCuentaBorrar(c.usuario); } catch (err) { /* se deja igual */ }
+        borrando = '';
+        if (d) {
+          cuentas = d.cuentas || [];
+          abiertas = d.abiertas || 0;
+        }
+        aviso('');
+        pintar();
+      };
+      return el;
+    }
+
+    function fila(c) {
+      if (borrando === c.usuario) return confirmarBorrado(c);
+
+      const el = document.createElement('div');
+      el.className = 'mc-fila';
+      el.innerHTML = '<span class="mc-ico"></span>' +
+        '<span class="mc-txt"><b class="mc-nom"></b><small class="mc-sub"></small></span>' +
+        '<button class="mc-del" title="Quitar cuenta">×</button>';
+
+      const titulo = c.personaje || c.usuario;
+      const sub = c.personaje
+        ? (c.nivel != null ? c.usuario + ' · Lv ' + c.nivel : c.usuario)
+        : 'Cuenta guardada';
+
+      el.querySelector('.mc-ico').textContent = titulo.charAt(0).toUpperCase();
+      el.querySelector('.mc-nom').textContent = titulo;
+      el.querySelector('.mc-sub').textContent = sub;
+      el.querySelector('.mc-del').onclick = (e) => {
+        e.stopPropagation();
+        borrando = c.usuario;
+        aviso('');
+        pintar();
+      };
+      el.onclick = () => abrir(c);
+      return el;
+    }
+
+    function pintar() {
+      $('mcTitulo').textContent = cuentas.length === 1 ? '1 cuenta guardada' : cuentas.length + ' cuentas guardadas';
+      $('mcAbiertas').textContent = abiertas ? abiertas + ' de ' + maximo + ' abiertas' : '';
+
+      const lista = $('mcLista');
+      lista.innerHTML = '';
+      if (!cuentas.length) {
+        const vacio = document.createElement('div');
+        vacio.className = 'mc-vacio';
+        vacio.textContent = 'Todavía no tienes cuentas guardadas.';
+        lista.appendChild(vacio);
+      } else {
+        cuentas.forEach((c) => lista.appendChild(fila(c)));
+      }
+      avisarAlto();
+    }
+
+    $('mcAdd').addEventListener('click', () => {
+      aviso('');
+      if (wl.abrirAgregarCuenta) wl.abrirAgregarCuenta();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (borrando) {
+        borrando = '';
+        pintar();
+        return;
+      }
+      if (wl.cerrarMenu) wl.cerrarMenu();
+    });
+
+    (async () => {
+      try {
+        const d = await wl.menuCuentasDatos();
+        if (d) {
+          cuentas = d.cuentas || [];
+          abiertas = d.abiertas || 0;
+          maximo = d.maximo || 6;
+        }
+      } catch (e) { /* lista vacía */ }
+      pintar();
+    })();
+  </script>
+</body>
+</html>

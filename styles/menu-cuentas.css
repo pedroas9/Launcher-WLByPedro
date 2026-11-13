@@ -1,0 +1,213 @@
+/* Ventanita flotante del botón "+ Cuenta" de la barra */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  color: #e4eaff;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 12px;
+  user-select: none;
+}
+
+.mc {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #16233a 0%, #101a2b 100%);
+  border: 1px solid #2a3f5e;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
+.mc-cab {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 8px;
+}
+
+.mc-titulo {
+  font-size: 11px;
+  color: #8e9db4;
+}
+
+.mc-abiertas {
+  font-size: 10.5px;
+  color: #7eb0ef;
+  white-space: nowrap;
+}
+
+.mc-lista {
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mc-lista::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mc-lista::-webkit-scrollbar-thumb {
+  background: #2c4468;
+  border-radius: 4px;
+}
+
+.mc-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.mc-fila:hover {
+  background: #1c2e48;
+}
+
+.mc-ico {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #23395a;
+  color: #f0cb7c;
+  font-size: 13px;
+}
+
+.mc-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mc-nom {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mc-sub {
+  font-size: 10.5px;
+  color: #8fa6c9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mc-del {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: #7f90a8;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mc-del:hover {
+  background: rgba(239, 119, 119, 0.14);
+  color: #ef7777;
+}
+
+.mc-conf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 4px;
+  padding: 7px 8px;
+  background: #2a1c26;
+  border: 1px solid #5a2f3a;
+  border-radius: 7px;
+}
+
+.mc-conf-txt {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mc-no,
+.mc-si {
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mc-no {
+  background: #23395a;
+  color: #e8edf6;
+}
+
+.mc-si {
+  background: #c0505a;
+  color: #fff;
+}
+
+.mc-vacio {
+  padding: 18px 8px;
+  font-size: 11.5px;
+  color: #8e9db4;
+  text-align: center;
+}
+
+.mc-aviso {
+  display: block;
+  padding: 2px 8px 6px;
+  font-size: 11px;
+  color: #f0d78a;
+}
+
+.mc-aviso[hidden] {
+  display: none;
+}
+
+.mc-aviso.error {
+  color: #f0a0a0;
+}
+
+.mc-pie {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #22324d;
+}
+
+.mc-add {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: #ffe0a0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.mc-add:hover {
+  background: #1c2e48;
+}

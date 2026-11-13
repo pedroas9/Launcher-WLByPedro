@@ -337,8 +337,19 @@ function abrirJuego({ datos, credenciales, slot, particion }) {
   ventanasJuego.push(estado);
   arrancarReloj();
 
+  // queda guardado el personaje de esta cuenta para el menú de cuentas
+  recordarPersonaje(credenciales && credenciales.cuenta, datos);
+
   win.loadFile('views/bar.html');
   win.once('ready-to-show', () => win.show());
+
+  // avisa a la barra para cambiar entre el icono de maximizar y el de restaurar
+  const avisarVentana = () => {
+    if (win.isDestroyed()) return;
+    win.webContents.send('ventana-estado', win.isMaximized());
+  };
+  win.on('maximize', avisarVentana);
+  win.on('unmaximize', avisarVentana);
 
   win.on('closed', () => {
     const i = ventanasJuego.indexOf(estado);
@@ -492,6 +503,238 @@ ipcMain.handle('multicuentas', () => {
   return { ok: true };
 });
 
+// ---------- menú de cuentas: ventana flotante bajo el botón "+ Cuenta" ----------
+// La barra solo mide 40 px (el juego va en un BrowserView debajo), así que el
+// desplegable no puede vivir dentro de ella: se abre en su propia ventanita.
+const ANCHO_MENU_CUENTAS = 300;
+const ALTO_MENU_MAX = 420;
+let menuCuentas = null;
+let anclaMenu = null; // { padre, rect } del botón que lo abrió
+let menuCerradoEn = 0;
+let dialogoCuenta = null;
+
+function datosMenuCuentas() {
+  const p = leerPrefs();
+  return {
+    cuentas: listaCuentas(p).map((c) => ({
+      usuario: c.usuario,
+      tienePassword: !!c.password,
+      personaje: (c.pj && c.pj.nombre) || '',
+      nivel: c.pj && c.pj.nivel != null ? c.pj.nivel : null,
+      servidor: c.serverNombre || '',
+    })),
+    abiertas: ventanasJuego.length,
+    maximo: MAX_VENTANAS,
+    maxCuentas: MAX_CUENTAS,
+  };
+}
+
+function colocarMenuCuentas(w, alto) {
+  const a = anclaMenu;
+  if (!a || !a.padre || a.padre.isDestroyed() || !w || w.isDestroyed()) return;
+  const b = a.padre.getBounds();
+  const r = a.rect || { top: 0, right: b.width, bottom: ALTO_BARRA };
+  const area = screen.getDisplayNearestPoint({ x: b.x + Math.round(b.width / 2), y: b.y + ALTO_BARRA }).workArea;
+
+  // pegado al borde derecho del botón, sin salirse de la pantalla
+  const x = Math.min(
+    Math.max(area.x + 6, Math.round(b.x + r.right - ANCHO_MENU_CUENTAS)),
+    area.x + area.width - ANCHO_MENU_CUENTAS - 6
+  );
+  let y = Math.round(b.y + r.bottom + 8);
+  if (y + alto > area.y + area.height - 6) {
+    // no cabe debajo: se abre hacia arriba, encima del botón
+    y = Math.round(b.y + r.top) - alto - 8;
+  }
+  y = Math.max(area.y + 6, y);
+
+  try { w.setBounds({ x, y, width: ANCHO_MENU_CUENTAS, height: alto }); } catch (e) { /* ventana ya cerrada */ }
+}
+
+function mostrarMenuCuentas(padre, rect) {
+  if (!padre || padre.isDestroyed() || menuCuentas) return;
+  anclaMenu = { padre, rect: rect || null };
+
+  const w = new BrowserWindow({
+    width: ANCHO_MENU_CUENTAS,
+    height: 160,
+    frame: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    transparent: true,
+    backgroundColor: '#00000000',
+    hasShadow: false,
+    show: false,
+    parent: padre,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false,
+    },
+  });
+  menuCuentas = w;
+  colocarMenuCuentas(w, 160);
+  w.loadFile('views/menu-cuentas.html');
+  w.once('ready-to-show', () => { if (menuCuentas === w) w.show(); });
+  w.on('blur', () => cerrarMenuCuentas());
+  w.on('closed', () => { if (menuCuentas === w) menuCuentas = null; });
+
+  // la barra no puede quedarse con el menú colgando al mover o minimizar
+  padre.on('move', cerrarMenuCuentas);
+  padre.on('resize', cerrarMenuCuentas);
+  padre.on('minimize', cerrarMenuCuentas);
+  padre.on('closed', cerrarMenuCuentas);
+}
+
+function cerrarMenuCuentas() {
+  const a = anclaMenu;
+  if (a && a.padre && !a.padre.isDestroyed()) {
+    a.padre.removeListener('move', cerrarMenuCuentas);
+    a.padre.removeListener('resize', cerrarMenuCuentas);
+    a.padre.removeListener('minimize', cerrarMenuCuentas);
+    a.padre.removeListener('closed', cerrarMenuCuentas);
+  }
+  menuCerradoEn = Date.now();
+  if (!menuCuentas) return;
+  const w = menuCuentas;
+  menuCuentas = null;
+  try { if (!w.isDestroyed()) w.destroy(); } catch (e) { /* ya cerrada */ }
+}
+
+ipcMain.handle('menu-cuentas-abrir', (evento, rect) => {
+  const padre = ventanaDe(evento);
+  if (!padre) return;
+  if (menuCuentas) {
+    cerrarMenuCuentas();
+    return;
+  }
+  // el clic que acaba de cerrar el menú (por perder el foco) no lo reabre
+  if (Date.now() - menuCerradoEn < 300) return;
+  mostrarMenuCuentas(padre, rect);
+});
+
+ipcMain.handle('menu-cuentas-cerrar', () => cerrarMenuCuentas());
+
+ipcMain.handle('menu-cuentas-datos', () => datosMenuCuentas());
+
+ipcMain.handle('menu-cuentas-alto', (evento, alto) => {
+  const w = ventanaDe(evento);
+  if (!w || w !== menuCuentas) return;
+  colocarMenuCuentas(w, Math.max(70, Math.min(Math.round(Number(alto) || 160), ALTO_MENU_MAX)));
+});
+
+ipcMain.handle('menu-cuenta-borrar', (_evento, usuario) => {
+  borrarCuenta(String(usuario || ''));
+  return datosMenuCuentas();
+});
+
+// Pulsar una cuenta del menú: conecta con sus datos guardados y abre el juego
+ipcMain.handle('menu-cuenta-abrir', async (_evento, usuario) => {
+  try {
+    if (ventanasJuego.length >= MAX_VENTANAS) {
+      return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas.' };
+    }
+    const c = listaCuentas(leerPrefs()).find(
+      (x) => x.usuario.toLowerCase() === String(usuario || '').toLowerCase()
+    );
+    if (!c) return { ok: false, error: 'Esa cuenta ya no está guardada.' };
+    if (!c.password) return { ok: false, error: 'Esa cuenta no tiene la contraseña guardada.' };
+
+    const slot = slotLibre();
+    if (!slot) return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas.' };
+    const particion = particionDe(slot);
+
+    const datos = await conectar(c.usuario, c.password, particion);
+    guardarCuenta(c.usuario, c.password, true, c.server);
+    const abierto = abrirJuego({ datos, credenciales: { cuenta: c.usuario, password: c.password }, slot, particion });
+    if (!abierto) return { ok: false, error: 'No se pudo abrir la ventana del juego.' };
+    cerrarMenuCuentas();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message || 'No se pudo conectar.' };
+  }
+});
+
+function abrirDialogoCuenta(base) {
+  if (dialogoCuenta && !dialogoCuenta.isDestroyed()) {
+    try { dialogoCuenta.focus(); } catch (e) { /* sin foco */ }
+    return;
+  }
+  const ancho = 380;
+  const alto = 322;
+  const b = base && !base.isDestroyed() ? base.getBounds() : { x: 0, y: 0, width: 0, height: 0 };
+  const w = new BrowserWindow({
+    width: ancho,
+    height: alto,
+    x: Math.round(b.x + (b.width - ancho) / 2),
+    y: Math.round(b.y + (b.height - alto) / 2),
+    frame: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    transparent: true,
+    backgroundColor: '#00000000',
+    hasShadow: false,
+    show: false,
+    parent: base && !base.isDestroyed() ? base : undefined,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  dialogoCuenta = w;
+  w.loadFile('views/agregar-cuenta.html');
+  w.once('ready-to-show', () => w.show());
+  w.on('closed', () => { if (dialogoCuenta === w) dialogoCuenta = null; });
+}
+
+ipcMain.handle('agregar-cuenta-abrir', (evento) => {
+  const origen = ventanaDe(evento);
+  const base = origen && origen.getParentWindow ? (origen.getParentWindow() || origen) : origen;
+  abrirDialogoCuenta(base);
+});
+
+ipcMain.handle('cuenta-crear', (_evento, datos) => {
+  const usuario = String((datos && datos.usuario) || '').trim();
+  const password = String((datos && datos.password) || '');
+  const server = (datos && datos.server) || 's1';
+  if (!usuario) return { ok: false, error: 'Escribe el nombre de la cuenta.' };
+  if (!password) return { ok: false, error: 'Escribe la contraseña.' };
+
+  const lista = listaCuentas(leerPrefs());
+  const existe = lista.some((c) => c.usuario.toLowerCase() === usuario.toLowerCase());
+  if (!existe && lista.length >= MAX_CUENTAS) {
+    return { ok: false, error: 'Máximo ' + MAX_CUENTAS + ' cuentas guardadas.' };
+  }
+
+  guardarCuenta(usuario, password, true, server);
+  if (dialogoCuenta && !dialogoCuenta.isDestroyed()) {
+    const w = dialogoCuenta;
+    dialogoCuenta = null;
+    try { w.destroy(); } catch (e) { /* ya cerrada */ }
+  }
+
+  // se vuelve a abrir el menú para que se vea la cuenta recién añadida
+  const a = anclaMenu;
+  if (a && a.padre && !a.padre.isDestroyed()) {
+    setTimeout(() => { if (!menuCuentas) mostrarMenuCuentas(a.padre, a.rect); }, 150);
+  }
+  return { ok: true };
+});
+
+ipcMain.handle('dialogo-cerrar', (evento) => {
+  const w = ventanaDe(evento);
+  if (w && !w.isDestroyed()) w.destroy();
+});
+
 // Reiniciar: reconecta esa cuenta y abre su ventana de nuevo, sin pasar por el
 // formulario. Usa la misma partición, así conserva su sesión y sus ajustes, y
 // abre la nueva antes de cerrar la vieja para no quedarnos sin ventanas.
@@ -572,6 +815,11 @@ ipcMain.handle('ventana-maximizar', (evento) => {
   if (w.isMaximized()) w.unmaximize(); else w.maximize();
 });
 
+ipcMain.handle('ventana-estado', (evento) => {
+  const w = ventanaDe(evento);
+  return w ? w.isMaximized() : false;
+});
+
 // El botón de cerrar no cierra: pide confirmación (Salir o Cancelar).
 function preguntarCerrar(padre) {
   if (!padre) return;
@@ -650,16 +898,40 @@ function listaCuentas(p) {
   return p.usuario ? [{ usuario: p.usuario, password: p.password || '', recordar: !!p.recordar }] : [];
 }
 
-function guardarCuenta(usuario, password, recordar) {
+function guardarCuenta(usuario, password, recordar, server) {
   const p = leerPrefs();
-  const lista = listaCuentas(p).filter((c) => c.usuario.toLowerCase() !== usuario.toLowerCase());
-  lista.unshift({ usuario, password: recordar ? password : '', recordar: !!recordar });
+  const lista = listaCuentas(p);
+  const clave = usuario.toLowerCase();
+  // se conserva lo ya sabido de esa cuenta (personaje, nivel, servidor)
+  const previa = lista.find((c) => c.usuario.toLowerCase() === clave) || {};
+  const resto = lista.filter((c) => c.usuario.toLowerCase() !== clave);
+  resto.unshift({
+    usuario,
+    password: recordar ? password : '',
+    recordar: !!recordar,
+    server: server || previa.server || 's1',
+    serverNombre: previa.serverNombre || '',
+    pj: previa.pj || null,
+  });
   guardarPrefs({
     usuario,
     password: recordar ? password : '',
     recordar: !!recordar,
-    cuentas: lista.slice(0, MAX_CUENTAS),
+    cuentas: resto.slice(0, MAX_CUENTAS),
   });
+}
+
+// El nombre del personaje solo lo da el servidor al conectar: se guarda aquí
+// para que el menú de cuentas pueda mostrarlo la próxima vez.
+function recordarPersonaje(usuario, datos) {
+  if (!usuario || !datos) return;
+  const p = leerPrefs();
+  const lista = listaCuentas(p);
+  const c = lista.find((x) => x.usuario.toLowerCase() === usuario.toLowerCase());
+  if (!c) return;
+  c.pj = { nombre: datos.personaje || '', nivel: datos.nivel != null ? datos.nivel : null };
+  if (datos.serverName) c.serverNombre = datos.serverName;
+  guardarPrefs({ usuario: p.usuario || '', password: p.password || '', recordar: !!p.recordar, cuentas: lista });
 }
 
 function borrarCuenta(usuario) {

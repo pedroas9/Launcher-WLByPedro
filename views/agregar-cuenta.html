@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Añadir cuenta</title>
+  <link rel="stylesheet" href="../styles/agregar-cuenta.css">
+</head>
+<body>
+  <div class="ac">
+    <div class="ac-cab">
+      <span class="ac-titulo">Añadir cuenta</span>
+      <button class="ac-x" id="acX" title="Cerrar" aria-label="Cerrar"></button>
+    </div>
+
+    <label class="ac-label" for="acUsuario">Nombre o correo</label>
+    <input class="ac-input" type="text" id="acUsuario" autocomplete="off" placeholder="Ingresa tu nombre o correo">
+
+    <label class="ac-label" for="acClave">Contraseña</label>
+    <input class="ac-input" type="password" id="acClave" placeholder="Ingresa tu contraseña">
+
+    <label class="ac-label" for="acServidor">Servidor</label>
+    <select class="ac-input" id="acServidor">
+      <option value="s1">S1: Balasor</option>
+    </select>
+
+    <p class="ac-aviso" id="acAviso" hidden></p>
+
+    <div class="ac-botones">
+      <button class="ac-guardar" id="acGuardar">Guardar</button>
+      <button class="ac-cancelar" id="acCancelar">Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    const wl = window.api || {};
+    const $ = (id) => document.getElementById(id);
+
+    $('acX').addEventListener('click', () => wl.cerrarDialogo && wl.cerrarDialogo());
+    $('acCancelar').addEventListener('click', () => wl.cerrarDialogo && wl.cerrarDialogo());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && wl.cerrarDialogo) wl.cerrarDialogo();
+    });
+
+    const aviso = (texto) => {
+      const caja = $('acAviso');
+      caja.hidden = !texto;
+      caja.textContent = texto || '';
+    };
+
+    async function guardar() {
+      const usuario = $('acUsuario').value.trim();
+      const password = $('acClave').value;
+      const server = $('acServidor').value || 's1';
+
+      if (!usuario) {
+        aviso('Escribe el nombre de la cuenta.');
+        $('acUsuario').focus();
+        return;
+      }
+      if (!password) {
+        aviso('Escribe la contraseña.');
+        $('acClave').focus();
+        return;
+      }
+
+      aviso('');
+      const btn = $('acGuardar');
+      btn.disabled = true;
+      let res;
+      try {
+        res = await wl.cuentaCrear({ usuario, password, server });
+      } catch (e) {
+        res = { ok: false, error: 'No se pudo guardar.' };
+      }
+      btn.disabled = false;
+      if (!res || !res.ok) aviso((res && res.error) || 'No se pudo guardar.');
+    }
+
+    $('acGuardar').addEventListener('click', guardar);
+    $('acClave').addEventListener('keydown', (e) => { if (e.key === 'Enter') guardar(); });
+    $('acUsuario').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('acClave').focus(); });
+
+    $('acUsuario').focus();
+  </script>
+</body>
+</html>

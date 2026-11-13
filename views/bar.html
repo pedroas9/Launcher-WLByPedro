@@ -31,11 +31,11 @@
       <button class="chip-multi chip-multi--reiniciar" id="reiniciar" title="Reconectar esta cuenta">
         <span class="chip-multi__ico" aria-hidden="true">&#8635;</span>Reiniciar
       </button>
-      <button class="chip-multi" id="multicuentas" title="Abrir otra cuenta">+ Cuenta</button>
-      <div id="controles">
-        <button class="ctl" id="min" title="Minimizar">&#9472;</button>
-        <button class="ctl" id="max" title="Maximizar">&#9633;</button>
-        <button class="ctl cerrar" id="cerrar" title="Cerrar">&#10005;</button>
+      <button class="chip-multi" id="accBtn" title="Cuentas guardadas">+ Cuenta</button>
+      <div class="win-controls">
+        <button class="win-btn win-min" id="min" title="Minimizar" aria-label="Minimizar"></button>
+        <button class="win-btn win-max" id="max" title="Maximizar" aria-label="Maximizar"></button>
+        <button class="win-btn win-close" id="cerrar" title="Cerrar" aria-label="Cerrar"></button>
       </div>
     </div>
   </div>
@@ -44,11 +44,29 @@
     const wl = window.api || {};
     const $ = (id) => document.getElementById(id);
 
+    // icono de la ventana: cuadrado (maximizar) o dos cuadrados (restaurar)
+    const btnMax = $('max');
+    const pintarMax = (maximizada) => {
+      btnMax.classList.toggle('is-max', !!maximizada);
+      btnMax.title = maximizada ? 'Restaurar' : 'Maximizar';
+      btnMax.setAttribute('aria-label', btnMax.title);
+    };
+    if (wl.ventanaMaximizada) wl.ventanaMaximizada().then(pintarMax);
+    if (wl.onEstadoVentana) wl.onEstadoVentana(pintarMax);
+
     $('min').addEventListener('click', () => wl.minimizar && wl.minimizar());
     $('max').addEventListener('click', () => wl.maximizar && wl.maximizar());
     $('cerrar').addEventListener('click', () => wl.pedirCerrar && wl.pedirCerrar());
     $('titulo').addEventListener('dblclick', (e) => {
       if (!e.target.closest('.zona-der') && wl.maximizar) wl.maximizar();
+    });
+
+    // "+ Cuenta": la barra solo mide 40 px, así que el menú se abre en su
+    // propia ventanita pegada al borde inferior del botón
+    $('accBtn').addEventListener('click', () => {
+      if (!wl.abrirMenuCuentas) return;
+      const r = $('accBtn').getBoundingClientRect();
+      wl.abrirMenuCuentas({ top: r.top, right: r.right, bottom: r.bottom, left: r.left });
     });
 
     let linear0 = null;
@@ -90,19 +108,6 @@
       } catch (e) {
         btn.disabled = false;
       }
-    });
-
-    document.getElementById('multicuentas').addEventListener('click', async () => {
-      const btn = document.getElementById('multicuentas');
-      const etiqueta = btn.textContent;
-      try {
-        const res = await wl.multicuentas();
-        if (res && res.ok === false) {
-          btn.textContent = res.error || 'Máximo';
-          btn.disabled = true;
-          setTimeout(() => { btn.textContent = etiqueta; btn.disabled = false; }, 2200);
-        }
-      } catch (e) { /* sin conexión con el proceso principal */ }
     });
 
     const chipPing = $('pingChip');

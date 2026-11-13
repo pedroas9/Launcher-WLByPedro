@@ -17,7 +17,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "electron-updater": "^6.6.2"
+    "electron-updater": "^6.8.11"
   },
   "devDependencies": {
     "electron": "11.5.0",

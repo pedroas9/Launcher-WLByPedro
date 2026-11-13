@@ -218,32 +218,128 @@ body {
   color: #6f7ea3;
 }
 
-#controles {
+/* ---------- botones de la ventana (minimizar / maximizar / cerrar) ---------- */
+.win-controls {
   display: flex;
+  align-items: center;
+  gap: 2px;
   height: 40px;
   flex-shrink: 0;
+  margin-left: 6px;
+  padding-left: 10px;
+  border-left: 1px solid #22324d;
+  -webkit-app-region: no-drag;
 }
 
-.ctl {
-  width: 40px;
-  height: 100%;
+.win-btn {
+  position: relative;
+  width: 38px;
+  height: 30px;
   border: 0;
+  border-radius: 7px;
   background: transparent;
-  color: #9aaaca;
-  font-size: 12px;
-  font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, transform 0.08s;
 }
 
-.ctl:hover {
-  background: rgba(38, 124, 229, 0.35);
-  color: #fff;
+.win-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.ctl.cerrar:hover {
-  background: #c0392b;
-  color: #fff;
+.win-btn:active {
+  transform: scale(0.92);
+}
+
+.win-btn:focus-visible {
+  outline: 2px solid #e9ad3588;
+  outline-offset: -2px;
+}
+
+.win-btn::before,
+.win-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+/* minimizar: una línea */
+.win-min::before {
+  width: 11px;
+  height: 1.5px;
+  background: #9fb2cf;
+  border-radius: 1px;
+  transform: translate(-50%, -50%) translateY(3px);
+}
+
+.win-min:hover::before {
+  background: #fff;
+}
+
+/* maximizar: un cuadrado */
+.win-max::before {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #9fb2cf;
+  border-radius: 2px;
+  transform: translate(-50%, -50%);
+}
+
+.win-max:hover::before {
+  border-color: #fff;
+}
+
+/* restaurar (ventana ya maximizada): dos cuadrados */
+.win-max.is-max::before {
+  width: 9px;
+  height: 9px;
+  transform: translate(-50%, -50%) translate(1.5px, -1.5px);
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  border-radius: 0 2px 0 0;
+}
+
+.win-max.is-max::after {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid #9fb2cf;
+  border-radius: 2px;
+  transform: translate(-50%, -50%) translate(-1px, 1px);
+}
+
+.win-max.is-max:hover::after {
+  border-color: #fff;
+}
+
+/* cerrar: una X */
+.win-close::before,
+.win-close::after {
+  width: 12px;
+  height: 1.5px;
+  background: #9fb2cf;
+  border-radius: 1px;
+}
+
+.win-close::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.win-close::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.win-close:hover {
+  background: #d6454f;
+}
+
+.win-close:hover::before,
+.win-close:hover::after {
+  background: #fff;
+}
+
+.win-close:active {
+  background: #b83540;
 }
 
 @media (max-width: 960px) {
