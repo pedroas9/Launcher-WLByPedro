@@ -12,6 +12,7 @@ const panelActualizacion = document.getElementById('panelActualizacion');
 const textoActualizacion = document.getElementById('textoActualizacion');
 const versionApp = document.getElementById('versionApp');
 let cuentas = [];
+let borrando = ''; // cuenta esperando confirmación para salir de la lista
 
 function mostrarMensajeLogin(texto, tipo) {
   const t = (texto || '').trim();
@@ -106,6 +107,11 @@ function pintarCuentas() {
   }
 
   cuentas.forEach((c) => {
+    if (borrando === c.usuario) {
+      listaCuentas.appendChild(filaConfirmar(c));
+      return;
+    }
+
     const fila = document.createElement('div');
     fila.className = 'item-cuenta';
 
@@ -118,12 +124,11 @@ function pintarCuentas() {
     quitar.className = 'quitar';
     quitar.title = 'Quitar de la lista';
     quitar.textContent = '\u00d7';
-    quitar.addEventListener('click', async (ev) => {
+    // la × no borra: pide confirmación en la misma fila
+    quitar.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      try {
-        cuentas = await window.api.borrarCuenta(c.usuario);
-        pintarCuentas();
-      } catch (e) { /* si falla, se deja la lista como está */ }
+      borrando = c.usuario;
+      pintarCuentas();
     });
 
     fila.addEventListener('click', () => {
@@ -144,9 +149,51 @@ function pintarCuentas() {
   });
 }
 
+// Fila de una cuenta pidiendo confirmación antes de borrarla
+function filaConfirmar(c) {
+  const fila = document.createElement('div');
+  fila.className = 'item-cuenta confirmando';
+
+  const texto = document.createElement('span');
+  texto.className = 'texto';
+  texto.textContent = '¿Quitar ' + c.usuario + '?';
+
+  const no = document.createElement('button');
+  no.type = 'button';
+  no.className = 'no';
+  no.textContent = 'No';
+  no.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    borrando = '';
+    pintarCuentas();
+  });
+
+  const si = document.createElement('button');
+  si.type = 'button';
+  si.className = 'si';
+  si.textContent = 'Sí';
+  si.addEventListener('click', async (ev) => {
+    ev.stopPropagation();
+    try {
+      cuentas = await window.api.borrarCuenta(c.usuario);
+    } catch (e) { /* si falla, se deja la lista como está */ }
+    borrando = '';
+    pintarCuentas();
+  });
+
+  fila.appendChild(texto);
+  fila.appendChild(no);
+  fila.appendChild(si);
+  return fila;
+}
+
 btnVerCuentas.addEventListener('click', (e) => {
   e.stopPropagation();
   listaCuentas.hidden = !listaCuentas.hidden;
+  if (!listaCuentas.hidden) {
+    borrando = '';
+    pintarCuentas();
+  }
 });
 
 document.addEventListener('click', (e) => {

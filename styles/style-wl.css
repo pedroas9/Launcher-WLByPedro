@@ -363,6 +363,17 @@ button {
   background: rgba(38, 124, 229, 0.2);
 }
 
+/* El marco del campo recorta sus hijos (bordes redondeados), y la lista de
+   cuentas es hija suya: sin esto el desplegable se abre pero queda oculto. */
+.campo-marco.combo {
+  overflow: visible;
+}
+
+/* al no recortar, la flecha conserva su esquina redondeada */
+.campo-marco.combo .flecha {
+  border-radius: 0 6px 6px 0;
+}
+
 .lista-cuentas {
   position: absolute;
   left: 0;
@@ -418,6 +429,44 @@ button {
 
 .item-cuenta .quitar:hover {
   color: #fff;
+}
+
+/* fila pidiendo confirmación antes de quitar la cuenta de la lista */
+.item-cuenta.confirmando,
+.item-cuenta.confirmando:hover {
+  background: rgba(90, 47, 58, 0.4);
+  color: #f0d7dc;
+  cursor: default;
+}
+
+.item-cuenta .no,
+.item-cuenta .si {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.item-cuenta .no {
+  background: #23395a;
+  color: #e8edf6;
+}
+
+.item-cuenta .no:hover {
+  background: #2c466e;
+}
+
+.item-cuenta .si {
+  background: #c0505a;
+  color: #fff;
+}
+
+.item-cuenta .si:hover {
+  background: #d05e68;
 }
 
 .item-cuenta.vacio {

@@ -181,6 +181,54 @@ body {
   -webkit-app-region: no-drag;
 }
 
+/* estrella: favorito apagado / marcado */
+.chip-favorito {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 27px;
+  margin-right: 4px;
+  padding: 0;
+  border: 1px solid rgba(53, 68, 94, 0.9);
+  border-radius: 6px;
+  background: rgba(24, 32, 57, 0.65);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.chip-favorito .estrella {
+  width: 14px;
+  height: 14px;
+  background: #55637f;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  transition: background 0.15s, filter 0.15s;
+}
+
+.chip-favorito:hover {
+  border-color: #3d8ef0;
+}
+
+.chip-favorito:hover .estrella {
+  background: #8fa6c9;
+}
+
+.chip-favorito.activo {
+  border-color: rgba(233, 173, 53, 0.55);
+  background: rgba(233, 173, 53, 0.12);
+}
+
+.chip-favorito.activo .estrella {
+  background: #f0cb7c;
+  filter: drop-shadow(0 0 4px rgba(240, 203, 124, 0.85));
+}
+
+.chip-favorito.activo:hover {
+  border-color: #e9ad35;
+  background: rgba(233, 173, 53, 0.2);
+}
+
 .chip-multi--reiniciar {
   display: inline-flex;
   align-items: center;
