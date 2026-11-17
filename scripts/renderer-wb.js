@@ -272,4 +272,10 @@ campoUsuario.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') jugar();
 });
 
+const limpiarErrorAlEditar = () => {
+  if (!enviandoLogin && !estadoLogin.hidden) mostrarMensajeLogin('');
+};
+campoUsuario.addEventListener('input', limpiarErrorAlEditar);
+campoClave.addEventListener('input', limpiarErrorAlEditar);
+
 btnCancelar.addEventListener('click', () => window.close());
