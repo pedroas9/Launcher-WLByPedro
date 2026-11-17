@@ -28,6 +28,7 @@
     let abiertas = 0;
     let maximo = 6;
     let borrando = '';
+    let conectando = '';
     let ocupado = false;
 
     // la ventana se ajusta a lo que mida el contenido
@@ -58,7 +59,12 @@
         return;
       }
       ocupado = true;
-      if (!c.abierta) aviso('Conectando con ' + c.usuario + '…');
+      borrando = '';
+      aviso('');
+      if (!c.abierta) {
+        conectando = c.usuario;
+        pintar();
+      }
       let res;
       try {
         res = await wl.menuCuentaAbrir(c.usuario);
@@ -66,7 +72,9 @@
         res = { ok: false, error: 'No se pudo conectar.' };
       }
       ocupado = false;
+      conectando = '';
       if (res && res.ok) return; // el proceso principal cierra el menú al abrir o enfocar la ventana
+      pintar();
       aviso((res && res.error) || 'No se pudo abrir la cuenta.', true);
     }
 
@@ -98,27 +106,44 @@
     function fila(c) {
       if (borrando === c.usuario) return confirmarBorrado(c);
 
+      const cargando = conectando === c.usuario;
       const el = document.createElement('div');
-      el.className = c.abierta ? 'mc-fila mc-fila--abierta' : 'mc-fila';
+      let clases = 'mc-fila';
+      if (c.abierta) clases += ' mc-fila--abierta';
+      if (cargando) clases += ' mc-fila--cargando';
+      else if (conectando) clases += ' mc-fila--inactiva';
+      el.className = clases;
+
+      const accion = cargando
+        ? '<span class="mc-spinner" aria-label="Conectando"></span>'
+        : (c.abierta ? '<span class="mc-badge" title="Ventana activa">Abierta</span>' : '') +
+          '<button class="mc-del" title="Quitar cuenta">×</button>';
+
       el.innerHTML = '<span class="mc-ico"></span>' +
         '<span class="mc-txt"><b class="mc-nom"></b><small class="mc-sub"></small></span>' +
-        (c.abierta ? '<span class="mc-badge" title="Ventana activa">Abierta</span>' : '') +
-        '<button class="mc-del" title="Quitar cuenta">×</button>';
+        accion;
 
       const titulo = c.personaje || c.usuario;
-      const sub = c.personaje
-        ? (c.nivel != null ? c.usuario + ' · Lv ' + c.nivel : c.usuario)
-        : 'Cuenta guardada';
+      const sub = cargando
+        ? 'Conectando…'
+        : (c.personaje
+          ? (c.nivel != null ? c.usuario + ' · Lv ' + c.nivel : c.usuario)
+          : 'Cuenta guardada');
 
       el.querySelector('.mc-ico').textContent = titulo.charAt(0).toUpperCase();
       el.querySelector('.mc-nom').textContent = titulo;
       el.querySelector('.mc-sub').textContent = sub;
-      el.querySelector('.mc-del').onclick = (e) => {
-        e.stopPropagation();
-        borrando = c.usuario;
-        aviso('');
-        pintar();
-      };
+
+      const btnDel = el.querySelector('.mc-del');
+      if (btnDel) {
+        btnDel.onclick = (e) => {
+          e.stopPropagation();
+          if (ocupado) return;
+          borrando = c.usuario;
+          aviso('');
+          pintar();
+        };
+      }
       el.onclick = () => abrir(c);
       return el;
     }
@@ -126,6 +151,7 @@
     function pintar() {
       $('mcTitulo').textContent = cuentas.length === 1 ? '1 cuenta guardada' : cuentas.length + ' cuentas guardadas';
       $('mcAbiertas').textContent = abiertas ? abiertas + ' de ' + maximo + ' abiertas' : '';
+      $('mcAdd').disabled = ocupado;
 
       const lista = $('mcLista');
       lista.innerHTML = '';
