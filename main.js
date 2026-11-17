@@ -725,6 +725,26 @@ ipcMain.handle('menu-cuenta-abrir', async (_evento, usuario) => {
   }
 });
 
+// Calcula (x, y) para centrar un diálogo sobre la ventana padre, sin salirse
+// del área visible del monitor donde esté esa ventana.
+function centrarSobre(padre, ancho, alto) {
+  const tienePadre = padre && !padre.isDestroyed();
+  const b = tienePadre ? padre.getBounds() : null;
+  const display = b ? screen.getDisplayMatching(b) : screen.getPrimaryDisplay();
+  const area = display.workArea;
+  const base = b || area;
+
+  const margen = 8;
+  const minX = area.x + margen;
+  const minY = area.y + margen;
+  const maxX = Math.max(minX, area.x + area.width - ancho - margen);
+  const maxY = Math.max(minY, area.y + area.height - alto - margen);
+
+  const x = Math.min(Math.max(minX, Math.round(base.x + (base.width - ancho) / 2)), maxX);
+  const y = Math.min(Math.max(minY, Math.round(base.y + (base.height - alto) / 2)), maxY);
+  return { x, y };
+}
+
 function abrirDialogoCuenta(base) {
   if (dialogoCuenta && !dialogoCuenta.isDestroyed()) {
     try { dialogoCuenta.focus(); } catch (e) { /* sin foco */ }
@@ -732,12 +752,12 @@ function abrirDialogoCuenta(base) {
   }
   const ancho = 380;
   const alto = 322;
-  const b = base && !base.isDestroyed() ? base.getBounds() : { x: 0, y: 0, width: 0, height: 0 };
+  const { x, y } = centrarSobre(base, ancho, alto);
   const w = new BrowserWindow({
     width: ancho,
     height: alto,
-    x: Math.round(b.x + (b.width - ancho) / 2),
-    y: Math.round(b.y + (b.height - alto) / 2),
+    x,
+    y,
     frame: false,
     resizable: false,
     minimizable: false,
@@ -891,13 +911,25 @@ ipcMain.handle('ventana-estado', (evento) => {
   return w ? w.isMaximized() : false;
 });
 
+const avisosCerrar = new WeakMap();
+
 // El botón de cerrar no cierra: pide confirmación (Salir o Cancelar).
 function preguntarCerrar(padre) {
-  if (!padre) return;
+  if (!padre || padre.isDestroyed()) return;
+  const existente = avisosCerrar.get(padre);
+  if (existente && !existente.isDestroyed()) {
+    try { existente.focus(); } catch (e) { /* sin foco */ }
+    return;
+  }
+
+  const ancho = 340;
+  const alto = 148;
+  const { x, y } = centrarSobre(padre, ancho, alto);
   const aviso = new BrowserWindow({
-    width: 340,
-    height: 148,
-    center: true,
+    width: ancho,
+    height: alto,
+    x,
+    y,
     parent: padre,
     modal: true,
     frame: false,
@@ -907,6 +939,7 @@ function preguntarCerrar(padre) {
     transparent: true,
     backgroundColor: '#00000000',
     hasShadow: false,
+    show: false,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -914,7 +947,14 @@ function preguntarCerrar(padre) {
       nodeIntegration: false,
     },
   });
+  avisosCerrar.set(padre, aviso);
+  aviso.on('closed', () => {
+    if (avisosCerrar.get(padre) === aviso) avisosCerrar.delete(padre);
+  });
   aviso.loadFile('views/cerrar.html');
+  aviso.once('ready-to-show', () => {
+    if (!aviso.isDestroyed()) aviso.show();
+  });
 }
 
 ipcMain.handle('cerrar-pedir', (evento) => {
@@ -1108,13 +1148,13 @@ function abrirVentanaMacro(base) {
     return;
   }
   const padre = base && !base.isDestroyed() ? base : null;
-  const b = padre ? padre.getBounds() : { x: 0, y: 0, width: ANCHO_MACRO, height: ALTO_MACRO };
+  const { x, y } = centrarSobre(padre, ANCHO_MACRO, ALTO_MACRO);
 
   const w = new BrowserWindow({
     width: ANCHO_MACRO,
     height: ALTO_MACRO,
-    x: Math.round(b.x + (b.width - ANCHO_MACRO) / 2),
-    y: Math.round(b.y + (b.height - ALTO_MACRO) / 2),
+    x,
+    y,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
