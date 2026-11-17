@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   margin: 0;
   height: 100%;
   background: #141927;
@@ -6,6 +7,7 @@ html, body {
   color: #e4eaff;
   font-family: 'Segoe UI', Arial, sans-serif;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 body {
@@ -27,6 +29,7 @@ body {
   border-bottom: 1px solid rgba(53, 68, 94, 0.85);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
   -webkit-app-region: drag;
+  app-region: drag;
 }
 
 .zona {
@@ -65,7 +68,6 @@ body {
   display: inline-flex;
   align-items: center;
   max-width: 100%;
-  -webkit-app-region: no-drag;
 }
 
 .tray-sep {
@@ -178,7 +180,6 @@ body {
   grid-column: 3;
   justify-content: flex-end;
   gap: 4px;
-  -webkit-app-region: no-drag;
 }
 
 /* estrella: favorito apagado / marcado */
@@ -196,6 +197,8 @@ body {
   background: rgba(24, 32, 57, 0.65);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .chip-favorito .estrella {
@@ -253,6 +256,8 @@ body {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .chip-multi:hover:not(:disabled) {
@@ -277,6 +282,7 @@ body {
   padding-left: 10px;
   border-left: 1px solid #22324d;
   -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .win-btn {
@@ -287,6 +293,8 @@ body {
   border-radius: 7px;
   background: transparent;
   cursor: pointer;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
   transition: background 0.15s, transform 0.08s;
 }
 
@@ -414,7 +422,7 @@ body {
     display: none;
   }
 
-  .dato-hora + .tray-sep {
+  .dato-hora+.tray-sep {
     display: none;
   }
 }

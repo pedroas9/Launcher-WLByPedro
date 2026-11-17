@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <title>WartuneLab</title>
   <link rel="stylesheet" href="../styles/bar.css">
 </head>
+
 <body>
   <div id="titulo">
     <div class="zona zona-izq" id="marca"><b>WartuneLab</b></div>
@@ -31,7 +33,8 @@
       <button class="chip-multi chip-multi--reiniciar" id="reiniciar" title="Reconectar esta cuenta">
         <span class="chip-multi__ico" aria-hidden="true">&#8635;</span>Reiniciar
       </button>
-      <button class="chip-favorito" id="favorito" title="Macro de Astros" aria-pressed="false" aria-label="Macro de Astros">
+      <button class="chip-favorito" id="favorito" title="Macro de Astros" aria-pressed="false"
+        aria-label="Macro de Astros">
         <span class="estrella" aria-hidden="true"></span>
       </button>
       <button class="chip-multi" id="accBtn" title="Cuentas guardadas">+ Cuenta</button>
@@ -61,7 +64,7 @@
     $('max').addEventListener('click', () => wl.maximizar && wl.maximizar());
     $('cerrar').addEventListener('click', () => wl.pedirCerrar && wl.pedirCerrar());
     $('titulo').addEventListener('dblclick', (e) => {
-      if (!e.target.closest('.zona-der') && wl.maximizar) wl.maximizar();
+      if (!e.target.closest('button, .win-controls') && wl.maximizar) wl.maximizar();
     });
 
     // estrella: abre el addon del macro; se enciende mientras está activo
@@ -76,7 +79,7 @@
     });
     if (wl.onMacroActivo) wl.onMacroActivo(pintarMacro);
     if (wl.macroEstado) {
-      wl.macroEstado().then((e) => pintarMacro(e && e.activo)).catch(() => {});
+      wl.macroEstado().then((e) => pintarMacro(e && e.activo)).catch(() => { });
     }
     btnFavorito.title = 'Macro de Astros';
 
@@ -159,4 +162,5 @@
     setInterval(refrescarPing, 1000);
   </script>
 </body>
+
 </html>
