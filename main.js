@@ -360,8 +360,13 @@ function abrirJuego({ datos, credenciales, slot, particion }) {
   });
 
   const ajustar = () => {
+    if (win.isDestroyed()) return;
     const [w, h] = win.getContentSize();
-    vista.setBounds({ x: 0, y: ALTO_BARRA, width: w, height: h - ALTO_BARRA });
+    const anchoVista = Math.max(0, w);
+    const altoVista = Math.max(0, h - ALTO_BARRA);
+    try {
+      vista.setBounds({ x: 0, y: ALTO_BARRA, width: anchoVista, height: altoVista });
+    } catch (e) { /* ignorar si la ventana está minimizada o no tiene tamaño válido */ }
   };
   ajustar();
   win.on('resize', ajustar);
@@ -580,7 +585,10 @@ function mostrarMenuCuentas(padre, rect) {
   padre.on('move', cerrarMenuCuentas);
   padre.on('resize', cerrarMenuCuentas);
   padre.on('minimize', cerrarMenuCuentas);
-  padre.on('closed', cerrarMenuCuentas);
+  padre.once('closed', () => {
+    anclaMenu = null;
+    cerrarMenuCuentas();
+  });
 }
 
 function cerrarMenuCuentas() {
@@ -590,6 +598,9 @@ function cerrarMenuCuentas() {
     a.padre.removeListener('resize', cerrarMenuCuentas);
     a.padre.removeListener('minimize', cerrarMenuCuentas);
     a.padre.removeListener('closed', cerrarMenuCuentas);
+  }
+  if (!dialogoCuenta || dialogoCuenta.isDestroyed()) {
+    anclaMenu = null;
   }
   menuCerradoEn = Date.now();
   if (!menuCuentas) return;
@@ -684,7 +695,12 @@ function abrirDialogoCuenta(base) {
   dialogoCuenta = w;
   w.loadFile('views/agregar-cuenta.html');
   w.once('ready-to-show', () => w.show());
-  w.on('closed', () => { if (dialogoCuenta === w) dialogoCuenta = null; });
+  w.on('closed', () => {
+    if (dialogoCuenta === w) {
+      dialogoCuenta = null;
+      if (!menuCuentas) anclaMenu = null;
+    }
+  });
 }
 
 ipcMain.handle('agregar-cuenta-abrir', (evento) => {
@@ -715,6 +731,7 @@ ipcMain.handle('cuenta-crear', (_evento, datos) => {
 
   // se vuelve a abrir el menú para que se vea la cuenta recién añadida
   const a = anclaMenu;
+  anclaMenu = null;
   if (a && a.padre && !a.padre.isDestroyed()) {
     setTimeout(() => { if (!menuCuentas) mostrarMenuCuentas(a.padre, a.rect); }, 150);
   }
