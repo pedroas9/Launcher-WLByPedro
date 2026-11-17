@@ -852,15 +852,16 @@ ipcMain.handle('juego-reiniciar', async (evento) => {
 
 ipcMain.handle('cerrar-elegir', async (evento, opcion) => {
   const aviso = ventanaDe(evento);
-  const padre = aviso && aviso.getParentWindow();
+  const padre = aviso && !aviso.isDestroyed() && aviso.getParentWindow ? aviso.getParentWindow() : null;
+
+  try {
+    if (aviso && !aviso.isDestroyed()) aviso.destroy();
+  } catch (e) { /* ya cerrada */ }
 
   if (opcion === 'salir') {
     // solo se cierra esta ventana: las demás cuentas siguen abiertas
     if (padre) cerrarVentanaJuego(padre); else app.quit();
-    return;
   }
-
-  if (aviso) aviso.close();
 });
 
 // ---------- addon: macro de astros ----------
