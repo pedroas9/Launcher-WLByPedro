@@ -270,7 +270,14 @@ function crearVentana() {
 }
 
 function restringir(wc) {
-  const permitido = (u) => { try { return new URL(u).hostname === HOST; } catch (e) { return false; } };
+  const permitido = (u) => {
+    try {
+      const h = new URL(u).hostname;
+      return h === HOST || h.endsWith('.' + HOST);
+    } catch (e) {
+      return false;
+    }
+  };
   wc.on('will-navigate', (e, u) => { if (!permitido(u)) e.preventDefault(); });
   wc.on('new-window', (e) => e.preventDefault());
 }
@@ -479,15 +486,28 @@ async function conectar(cuenta, password, particion) {
 
 // ---------- IPC ----------
 ipcMain.handle('jugar', async (evento, { cuenta, password, recordar }) => {
+  const cuentaTrim = String(cuenta || '').trim();
+  const abierta = ventanasJuego.find(
+    (v) => v.credenciales && v.credenciales.cuenta.toLowerCase() === cuentaTrim.toLowerCase()
+  );
+  if (abierta && abierta.win && !abierta.win.isDestroyed()) {
+    try {
+      if (abierta.win.isMinimized()) abierta.win.restore();
+      abierta.win.show();
+      abierta.win.focus();
+    } catch (e) { /* sin foco */ }
+    return { ok: false, error: 'Esta cuenta ya está abierta en otra ventana.' };
+  }
+
   const slot = slotLibre();
   if (!slot) return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas. Cierra una para abrir otra.' };
   slotsReservados.add(slot);
   try {
     const particion = particionDe(slot);
-    const datos = await conectar(cuenta, password, particion);
+    const datos = await conectar(cuentaTrim, password, particion);
     // se guarda aquí porque al entrar se cierra la ventana del login
-    guardarCuenta(cuenta, password, recordar);
-    const abierto = abrirJuego({ datos, credenciales: { cuenta, password }, slot, particion });
+    guardarCuenta(cuentaTrim, password, recordar);
+    const abierto = abrirJuego({ datos, credenciales: { cuenta: cuentaTrim, password }, slot, particion });
     if (!abierto) throw new Error('No se pudo abrir la ventana del juego.');
 
     const login = BrowserWindow.fromWebContents(evento.sender);
@@ -638,12 +658,26 @@ ipcMain.handle('menu-cuenta-borrar', (_evento, usuario) => {
 
 // Pulsar una cuenta del menú: conecta con sus datos guardados y abre el juego
 ipcMain.handle('menu-cuenta-abrir', async (_evento, usuario) => {
+  const cuentaTrim = String(usuario || '').trim();
+  const abierta = ventanasJuego.find(
+    (v) => v.credenciales && v.credenciales.cuenta.toLowerCase() === cuentaTrim.toLowerCase()
+  );
+  if (abierta && abierta.win && !abierta.win.isDestroyed()) {
+    try {
+      if (abierta.win.isMinimized()) abierta.win.restore();
+      abierta.win.show();
+      abierta.win.focus();
+    } catch (e) { /* sin foco */ }
+    cerrarMenuCuentas();
+    return { ok: false, error: 'Esta cuenta ya está abierta.' };
+  }
+
   const slot = slotLibre();
   if (!slot) return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas.' };
   slotsReservados.add(slot);
   try {
     const c = listaCuentas(leerPrefs()).find(
-      (x) => x.usuario.toLowerCase() === String(usuario || '').toLowerCase()
+      (x) => x.usuario.toLowerCase() === cuentaTrim.toLowerCase()
     );
     if (!c) return { ok: false, error: 'Esa cuenta ya no está guardada.' };
     if (!c.password) return { ok: false, error: 'Esa cuenta no tiene la contraseña guardada.' };
@@ -1171,8 +1205,15 @@ function recordarPersonaje(usuario, datos) {
 
 function borrarCuenta(usuario) {
   const p = leerPrefs();
-  const lista = listaCuentas(p).filter((c) => c.usuario.toLowerCase() !== usuario.toLowerCase());
-  guardarPrefs({ usuario: p.usuario || '', password: p.password || '', recordar: !!p.recordar, cuentas: lista });
+  const clave = usuario.toLowerCase();
+  const lista = listaCuentas(p).filter((c) => c.usuario.toLowerCase() !== clave);
+  const esActivo = (p.usuario || '').toLowerCase() === clave;
+  guardarPrefs({
+    usuario: esActivo ? (lista[0] ? lista[0].usuario : '') : p.usuario || '',
+    password: esActivo ? (lista[0] && lista[0].recordar ? lista[0].password : '') : p.password || '',
+    recordar: esActivo ? (lista[0] ? !!lista[0].recordar : false) : !!p.recordar,
+    cuentas: lista,
+  });
   return lista;
 }
 

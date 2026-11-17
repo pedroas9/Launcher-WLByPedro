@@ -13,6 +13,7 @@ const textoActualizacion = document.getElementById('textoActualizacion');
 const versionApp = document.getElementById('versionApp');
 let cuentas = [];
 let borrando = ''; // cuenta esperando confirmación para salir de la lista
+let enviandoLogin = false;
 
 function mostrarMensajeLogin(texto, tipo) {
   const t = (texto || '').trim();
@@ -226,11 +227,13 @@ document.addEventListener('keydown', (e) => {
 })();
 
 async function jugar() {
+  if (enviandoLogin) return;
   const cuenta = campoUsuario.value.trim();
   const password = campoClave.value;
   const server = document.getElementById('servidor').value || 's1';
   const recordar = casillaRecordar.checked;
 
+  enviandoLogin = true;
   btnIniciar.disabled = true;
   mostrarMensajeLogin('Conectando con el servidor…', 'cargando');
 
@@ -249,6 +252,7 @@ async function jugar() {
     return;
   }
 
+  enviandoLogin = false;
   mostrarMensajeLogin(res.error || 'No se pudo iniciar sesión.', 'error');
   btnIniciar.disabled = false;
 }
