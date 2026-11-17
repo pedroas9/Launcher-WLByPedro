@@ -141,7 +141,9 @@
             break;
           case 'fin':
             estado(false, 'Detenido');
-            aviso(ev.motivo ? 'Terminó: ' + ev.motivo : '');
+            if (ev.motivo && ev.motivo !== 'error') {
+              aviso('Terminó: ' + ev.motivo);
+            }
             break;
           default:
             break;
@@ -151,6 +153,16 @@
 
     pintarIntervalo();
     estado(false, 'Detenido');
+    if (wl.macroEstado) {
+      wl.macroEstado().then((e) => {
+        if (!e) return;
+        if (e.cps) {
+          $('maSlider').value = String(e.cps);
+          pintarIntervalo();
+        }
+        if (e.activo) estado(true, 'Activo');
+      }).catch(() => {});
+    }
   </script>
 </body>
 </html>

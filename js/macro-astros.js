@@ -1,16 +1,17 @@
 'use strict';
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
-const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { ROOT_DIR, PRELOAD_PATH } = require('./config');
 const { ventanasJuego, ventanaDe, centrarSobre } = require('./ventanas');
+const { crearMotorMacro } = require('./macro-motor');
 
 const ANCHO_MACRO = 380;
 const ALTO_MACRO = 362;
 let ventanaMacro = null;
-let macroProc = null;
+let ventanaObjetivo = null;
+let macroActivo = null;
 let macroConfig = { cps: 4 };
 
 function dirAddonMacro() {
@@ -31,9 +32,16 @@ function datosAddonMacro() {
   }
 }
 
-const rutaScriptMacro = () => path.join(dirAddonMacro(), 'astros.py');
 const rutaVistaMacro = () => path.join(dirAddonMacro(), 'ventana.html');
 const rutaConfigMacro = () => path.join(app.getPath('userData'), 'macro-config.json');
+
+function leerConfigMacro() {
+  try {
+    const j = JSON.parse(fs.readFileSync(rutaConfigMacro(), 'utf8'));
+    if (j && Number(j.cps) > 0) macroConfig = { cps: Math.min(20, Math.max(1, Number(j.cps))) };
+  } catch (e) {}
+  return macroConfig;
+}
 
 function mostrarVentanaMacro() {
   if (!ventanaMacro || ventanaMacro.isDestroyed()) return;
@@ -60,83 +68,50 @@ function enviarAMacro(datos) {
   try { ventanaMacro.webContents.send('macro-evento', datos); } catch (e) {}
 }
 
-function iniciarMacro(config) {
-  if (macroProc) return { ok: false, error: 'El macro ya está en marcha.' };
+function resolverEstadoObjetivo() {
+  if (ventanaObjetivo && !ventanaObjetivo.isDestroyed()) {
+    const encontrado = ventanasJuego.find((v) => v.win === ventanaObjetivo && v.vista && !v.vista.webContents.isDestroyed());
+    if (encontrado) return encontrado;
+  }
+  return ventanasJuego.find((v) => v.win && !v.win.isDestroyed() && v.vista && !v.vista.webContents.isDestroyed()) || null;
+}
 
-  const cps = Math.min(20, Math.max(1, Number(config && config.cps) || 4));
+function iniciarMacro(config) {
+  if (macroActivo) return { ok: false, error: 'El macro ya está en marcha.' };
+
+  const estadoJuego = resolverEstadoObjetivo();
+  if (!estadoJuego) return { ok: false, error: 'No hay ninguna ventana de juego abierta.' };
+
+  const cps = Math.min(20, Math.max(1, Number(config && config.cps) || macroConfig.cps || 4));
   macroConfig = { cps };
   try {
     fs.writeFileSync(rutaConfigMacro(), JSON.stringify({ cps }), 'utf8');
-  } catch (e) {
-    return { ok: false, error: 'No pude escribir la configuración del macro.' };
-  }
+  } catch (e) {}
 
-  let p;
-  try {
-    p = spawn(process.env.WL_PYTHON || 'python', [rutaScriptMacro(), '--config', rutaConfigMacro()], {
-      cwd: dirAddonMacro(),
-      windowsHide: true,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-  } catch (e) {
-    return { ok: false, error: 'No encontré Python instalado: el macro lo necesita.' };
-  }
-
-  macroProc = p;
-  let resto = '';
-
-  p.stdout.setEncoding('utf8');
-  p.stdout.on('data', (trozo) => {
-    resto += trozo;
-    let i;
-    while ((i = resto.indexOf('\n')) >= 0) {
-      const linea = resto.slice(0, i).trim();
-      resto = resto.slice(i + 1);
-      if (!linea) continue;
-      if (linea.charAt(0) === '{') {
-        try { enviarAMacro(JSON.parse(linea)); } catch (e) {}
-      } else {
-        enviarAMacro({ ev: 'log', texto: linea });
-      }
-    }
+  let motor;
+  motor = crearMotorMacro({
+    estadoJuego,
+    dirAddon: dirAddonMacro(),
+    config: macroConfig,
+    onEvento: (ev) => enviarAMacro(ev),
+    onFin: () => {
+      if (macroActivo === motor) macroActivo = null;
+      avisarMacro(false);
+      mostrarVentanaMacro();
+    },
   });
 
-  p.stderr.setEncoding('utf8');
-  p.stderr.on('data', (trozo) => enviarAMacro({ ev: 'log', texto: String(trozo).slice(0, 400) }));
-
-  p.on('error', (e) => {
-    if (macroProc === p) macroProc = null;
-    avisarMacro(false);
-    mostrarVentanaMacro();
-    const falta = e && e.code === 'ENOENT';
-    enviarAMacro({
-      ev: 'error',
-      texto: falta
-        ? 'No encontré Python instalado en este equipo: el macro lo necesita.'
-        : (e.message || 'No se pudo iniciar el macro.'),
-    });
-    enviarAMacro({ ev: 'fin', motivo: 'no se pudo iniciar' });
-  });
-
-  p.on('exit', () => {
-    if (macroProc === p) macroProc = null;
-    avisarMacro(false);
-    mostrarVentanaMacro();
-  });
-
+  macroActivo = motor;
   avisarMacro(true);
   ocultarVentanaMacro();
+  motor.iniciar();
   return { ok: true };
 }
 
 function detenerMacro(motivo) {
-  if (!macroProc) return;
-  const p = macroProc;
-  try { p.stdin.write('stop\n'); } catch (e) {}
-  setTimeout(() => {
-    try { if (macroProc === p) p.kill(); } catch (e) {}
-  }, 2500);
-  enviarAMacro({ ev: 'aviso', texto: motivo || 'deteniendo…' });
+  if (!macroActivo) return;
+  macroActivo.detener(motivo || 'detenido');
+  enviarAMacro({ ev: 'aviso', texto: 'deteniendo…' });
 }
 
 function registrarAtajosMacro() {
@@ -146,8 +121,8 @@ function registrarAtajosMacro() {
       globalShortcut.register(tecla, fn);
     } catch (e) {}
   };
-  atajo('F9', () => { if (!macroProc) iniciarMacro(macroConfig); });
-  atajo('F8', () => { if (macroProc) detenerMacro('detenido con F8'); });
+  atajo('F9', () => { if (!macroActivo) iniciarMacro(macroConfig); });
+  atajo('F8', () => { if (macroActivo) detenerMacro('detenido con F8'); });
 }
 
 function desregistrarAtajosMacro() {
@@ -157,11 +132,13 @@ function desregistrarAtajosMacro() {
 }
 
 function abrirVentanaMacro(base) {
+  if (base && !base.isDestroyed()) ventanaObjetivo = base;
   if (ventanaMacro && !ventanaMacro.isDestroyed()) {
     ventanaMacro.show();
     ventanaMacro.focus();
     return;
   }
+  leerConfigMacro();
   const padre = base && !base.isDestroyed() ? base : null;
   const { x, y } = centrarSobre(padre, ANCHO_MACRO, ALTO_MACRO);
 
@@ -199,10 +176,9 @@ function abrirVentanaMacro(base) {
 }
 
 function limpiarMacroAlSalir() {
-  if (macroProc) {
-    try { macroProc.stdin.write('stop\n'); } catch (e) {}
-    try { macroProc.kill(); } catch (e) {}
-    macroProc = null;
+  if (macroActivo) {
+    macroActivo.detener('launcher cerrado');
+    macroActivo = null;
   }
   desregistrarAtajosMacro();
 }
@@ -212,7 +188,7 @@ function registrarIpcMacro() {
     const origen = ventanaDe(evento);
     const base = origen && origen.getParentWindow ? (origen.getParentWindow() || origen) : origen;
 
-    if (ventanaMacro && !ventanaMacro.isDestroyed() && ventanaMacro.isVisible() && macroProc) {
+    if (ventanaMacro && !ventanaMacro.isDestroyed() && ventanaMacro.isVisible() && macroActivo) {
       ocultarVentanaMacro();
       return;
     }
@@ -222,11 +198,11 @@ function registrarIpcMacro() {
   ipcMain.handle('macro-iniciar', (_evento, config) => iniciarMacro(config));
 
   ipcMain.handle('macro-detener', () => {
-    detenerMacro('deteniendo…');
+    detenerMacro('detenido');
     return { ok: true };
   });
 
-  ipcMain.handle('macro-estado', () => ({ activo: !!macroProc }));
+  ipcMain.handle('macro-estado', () => ({ activo: !!macroActivo, cps: macroConfig.cps }));
 
   ipcMain.handle('macro-cerrar', (evento) => {
     const w = ventanaDe(evento);
