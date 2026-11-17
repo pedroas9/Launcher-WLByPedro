@@ -188,11 +188,16 @@ function filaConfirmar(c) {
   return fila;
 }
 
-btnVerCuentas.addEventListener('click', (e) => {
+btnVerCuentas.addEventListener('click', async (e) => {
   e.stopPropagation();
-  listaCuentas.hidden = !listaCuentas.hidden;
-  if (!listaCuentas.hidden) {
+  const abrir = listaCuentas.hidden;
+  listaCuentas.hidden = !abrir;
+  if (abrir) {
     borrando = '';
+    try {
+      const p = await window.api.prefsLeer();
+      if (p && Array.isArray(p.cuentas)) cuentas = p.cuentas;
+    } catch (err) { /* se conserva la lista actual en memoria */ }
     pintarCuentas();
   }
 });

@@ -30,33 +30,35 @@
     let borrando = '';
     let ocupado = false;
 
-    const aviso = (texto, error) => {
-      const caja = $('mcAviso');
-      if (!texto) {
-        caja.hidden = true;
-        caja.textContent = '';
-        caja.classList.remove('error');
-        return;
-      }
-      caja.hidden = false;
-      caja.textContent = texto;
-      caja.classList.toggle('error', !!error);
-    };
-
     // la ventana se ajusta a lo que mida el contenido
     const avisarAlto = () => {
       if (!wl.menuAlto) return;
       wl.menuAlto(Math.ceil($('mc').getBoundingClientRect().height) + 2);
     };
 
+    const aviso = (texto, error) => {
+      const caja = $('mcAviso');
+      if (!texto) {
+        caja.hidden = true;
+        caja.textContent = '';
+        caja.classList.remove('error');
+        avisarAlto();
+        return;
+      }
+      caja.hidden = false;
+      caja.textContent = texto;
+      caja.classList.toggle('error', !!error);
+      avisarAlto();
+    };
+
     async function abrir(c) {
       if (ocupado) return;
-      if (!c.tienePassword) {
+      if (!c.abierta && !c.tienePassword) {
         aviso('Esa cuenta no tiene la contraseña guardada. Quítala y vuelve a añadirla.', true);
         return;
       }
       ocupado = true;
-      aviso('Conectando con ' + c.usuario + '…');
+      if (!c.abierta) aviso('Conectando con ' + c.usuario + '…');
       let res;
       try {
         res = await wl.menuCuentaAbrir(c.usuario);
@@ -64,7 +66,7 @@
         res = { ok: false, error: 'No se pudo conectar.' };
       }
       ocupado = false;
-      if (res && res.ok) return; // el proceso principal cierra el menú al abrir la ventana
+      if (res && res.ok) return; // el proceso principal cierra el menú al abrir o enfocar la ventana
       aviso((res && res.error) || 'No se pudo abrir la cuenta.', true);
     }
 
@@ -97,9 +99,10 @@
       if (borrando === c.usuario) return confirmarBorrado(c);
 
       const el = document.createElement('div');
-      el.className = 'mc-fila';
+      el.className = c.abierta ? 'mc-fila mc-fila--abierta' : 'mc-fila';
       el.innerHTML = '<span class="mc-ico"></span>' +
         '<span class="mc-txt"><b class="mc-nom"></b><small class="mc-sub"></small></span>' +
+        (c.abierta ? '<span class="mc-badge" title="Ventana activa">Abierta</span>' : '') +
         '<button class="mc-del" title="Quitar cuenta">×</button>';
 
       const titulo = c.personaje || c.usuario;

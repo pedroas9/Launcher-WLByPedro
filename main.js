@@ -249,7 +249,17 @@ function pararRelojSiVacio() {
 }
 
 // ---------- ventana de login ----------
+let ventanaLogin = null;
+
 function crearVentana() {
+  if (ventanaLogin && !ventanaLogin.isDestroyed()) {
+    try {
+      if (ventanaLogin.isMinimized()) ventanaLogin.restore();
+      ventanaLogin.show();
+      ventanaLogin.focus();
+    } catch (e) { /* sin foco */ }
+    return ventanaLogin;
+  }
   const ventana = new BrowserWindow({
     width: 1040,
     height: 700,
@@ -265,8 +275,13 @@ function crearVentana() {
       nodeIntegration: false,
     },
   });
+  ventanaLogin = ventana;
+  ventana.on('closed', () => {
+    if (ventanaLogin === ventana) ventanaLogin = null;
+  });
   ventana.setBackgroundColor('#00000000');
   ventana.loadFile('views/index.html');
+  return ventana;
 }
 
 function restringir(wc) {
@@ -505,8 +520,8 @@ ipcMain.handle('jugar', async (evento, { cuenta, password, recordar }) => {
   try {
     const particion = particionDe(slot);
     const datos = await conectar(cuentaTrim, password, particion);
-    // se guarda aquí porque al entrar se cierra la ventana del login
-    guardarCuenta(cuentaTrim, password, recordar);
+    // se guarda aquí (con los datos del personaje en una sola escritura) porque al entrar se cierra el login
+    guardarCuenta(cuentaTrim, password, recordar, null, datos);
     const abierto = abrirJuego({ datos, credenciales: { cuenta: cuentaTrim, password }, slot, particion });
     if (!abierto) throw new Error('No se pudo abrir la ventana del juego.');
 
@@ -532,6 +547,11 @@ let dialogoCuenta = null;
 
 function datosMenuCuentas() {
   const p = leerPrefs();
+  const abiertasSet = new Set(
+    ventanasJuego
+      .filter((v) => v.win && !v.win.isDestroyed() && v.credenciales && v.credenciales.cuenta)
+      .map((v) => v.credenciales.cuenta.toLowerCase())
+  );
   return {
     cuentas: listaCuentas(p).map((c) => ({
       usuario: c.usuario,
@@ -539,6 +559,7 @@ function datosMenuCuentas() {
       personaje: (c.pj && c.pj.nombre) || '',
       nivel: c.pj && c.pj.nivel != null ? c.pj.nivel : null,
       servidor: c.serverNombre || '',
+      abierta: abiertasSet.has(c.usuario.toLowerCase()),
     })),
     abiertas: ventanasJuego.length,
     maximo: MAX_VENTANAS,
@@ -565,12 +586,23 @@ function colocarMenuCuentas(w, alto) {
   }
   y = Math.max(area.y + 6, y);
 
-  try { w.setBounds({ x, y, width: ANCHO_MENU_CUENTAS, height: alto }); } catch (e) { /* ventana ya cerrada */ }
+  try {
+    // En Windows con escala DPI, setBounds sobre resizable:false puede ignorar el cambio de alto
+    w.setResizable(true);
+    w.setBounds({ x, y, width: ANCHO_MENU_CUENTAS, height: alto });
+    w.setResizable(false);
+  } catch (e) { /* ventana ya cerrada */ }
 }
 
 function mostrarMenuCuentas(padre, rect) {
   if (!padre || padre.isDestroyed() || menuCuentas) return;
-  anclaMenu = { padre, rect: rect || null };
+  const onPadreCerrado = () => {
+    if (anclaMenu && anclaMenu.padre === padre) anclaMenu = null;
+    if (menuCuentas && !menuCuentas.isDestroyed() && menuCuentas.getParentWindow() === padre) {
+      cerrarMenuCuentas();
+    }
+  };
+  anclaMenu = { padre, rect: rect || null, onPadreCerrado };
 
   const w = new BrowserWindow({
     width: ANCHO_MENU_CUENTAS,
@@ -605,10 +637,7 @@ function mostrarMenuCuentas(padre, rect) {
   padre.on('move', cerrarMenuCuentas);
   padre.on('resize', cerrarMenuCuentas);
   padre.on('minimize', cerrarMenuCuentas);
-  padre.once('closed', () => {
-    anclaMenu = null;
-    cerrarMenuCuentas();
-  });
+  padre.once('closed', onPadreCerrado);
 }
 
 function cerrarMenuCuentas() {
@@ -617,7 +646,7 @@ function cerrarMenuCuentas() {
     a.padre.removeListener('move', cerrarMenuCuentas);
     a.padre.removeListener('resize', cerrarMenuCuentas);
     a.padre.removeListener('minimize', cerrarMenuCuentas);
-    a.padre.removeListener('closed', cerrarMenuCuentas);
+    if (a.onPadreCerrado) a.padre.removeListener('closed', a.onPadreCerrado);
   }
   if (!dialogoCuenta || dialogoCuenta.isDestroyed()) {
     anclaMenu = null;
@@ -669,7 +698,7 @@ ipcMain.handle('menu-cuenta-abrir', async (_evento, usuario) => {
       abierta.win.focus();
     } catch (e) { /* sin foco */ }
     cerrarMenuCuentas();
-    return { ok: false, error: 'Esta cuenta ya está abierta.' };
+    return { ok: true, enfocada: true };
   }
 
   const slot = slotLibre();
@@ -684,7 +713,7 @@ ipcMain.handle('menu-cuenta-abrir', async (_evento, usuario) => {
 
     const particion = particionDe(slot);
     const datos = await conectar(c.usuario, c.password, particion);
-    guardarCuenta(c.usuario, c.password, true, c.server);
+    guardarCuenta(c.usuario, c.password, true, c.server, datos);
     const abierto = abrirJuego({ datos, credenciales: { cuenta: c.usuario, password: c.password }, slot, particion });
     if (!abierto) return { ok: false, error: 'No se pudo abrir la ventana del juego.' };
     cerrarMenuCuentas();
@@ -1142,21 +1171,71 @@ ipcMain.handle('macro-cerrar', (evento) => {
 
 // ---------- preferencias del login (lista de cuentas) ----------
 const rutaPrefs = () => path.join(app.getPath('userData'), 'preferencias.json');
+const rutaPrefsBak = () => path.join(app.getPath('userData'), 'preferencias.json.bak');
 const MAX_CUENTAS = 12;
+let prefsCache = null;
+
+function clonarPrefs(obj) {
+  return JSON.parse(JSON.stringify(obj || {}));
+}
+
+function parsearArchivoPrefs(ruta) {
+  const crudo = fs.readFileSync(ruta, 'utf8');
+  if (!crudo || !crudo.trim()) throw new Error('Archivo vacío');
+  const parsed = JSON.parse(crudo);
+  if (!parsed || typeof parsed !== 'object') throw new Error('Formato inválido');
+  return parsed;
+}
 
 function leerPrefs() {
+  const ruta = rutaPrefs();
   try {
-    return JSON.parse(fs.readFileSync(rutaPrefs(), 'utf8')) || {};
+    const p = parsearArchivoPrefs(ruta);
+    prefsCache = clonarPrefs(p);
+    return p;
   } catch (e) {
-    return {};
+    // Si falló la lectura (p. ej. archivo bloqueado/corrupto), nunca perder cuentas:
+    // recuperar de la caché en memoria o del respaldo .bak antes de caer en {}.
+    const noExiste = e && e.code === 'ENOENT';
+    if (!noExiste && prefsCache) return clonarPrefs(prefsCache);
+    try {
+      const bak = parsearArchivoPrefs(rutaPrefsBak());
+      prefsCache = clonarPrefs(bak);
+      return bak;
+    } catch (eBak) {
+      if (prefsCache) return clonarPrefs(prefsCache);
+      return {};
+    }
   }
 }
 
 function guardarPrefs(prefs) {
+  const ruta = rutaPrefs();
+  const bak = rutaPrefsBak();
+  const tmp = ruta + '.tmp.' + process.pid + '.' + Date.now();
+  const contenido = JSON.stringify(prefs, null, 2);
   try {
-    fs.writeFileSync(rutaPrefs(), JSON.stringify(prefs, null, 2), 'utf8');
+    fs.mkdirSync(path.dirname(ruta), { recursive: true });
+    // Respaldar la versión válida actual antes de reemplazarla
+    try {
+      if (fs.existsSync(ruta)) {
+        parsearArchivoPrefs(ruta);
+        fs.copyFileSync(ruta, bak);
+      }
+    } catch (e) { /* si el archivo actual estaba corrupto, conservamos el .bak bueno */ }
+
+    // Escritura atómica: escribir en archivo temporal y renombrar
+    fs.writeFileSync(tmp, contenido, 'utf8');
+    try {
+      fs.renameSync(tmp, ruta);
+    } catch (eRename) {
+      fs.copyFileSync(tmp, ruta);
+      try { fs.unlinkSync(tmp); } catch (e) { /* nada */ }
+    }
+    prefsCache = JSON.parse(contenido);
     return true;
   } catch (e) {
+    try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch (err) { /* nada */ }
     return false;
   }
 }
@@ -1167,20 +1246,24 @@ function listaCuentas(p) {
   return p.usuario ? [{ usuario: p.usuario, password: p.password || '', recordar: !!p.recordar }] : [];
 }
 
-function guardarCuenta(usuario, password, recordar, server) {
+function guardarCuenta(usuario, password, recordar, server, datos) {
   const p = leerPrefs();
   const lista = listaCuentas(p);
   const clave = usuario.toLowerCase();
   // se conserva lo ya sabido de esa cuenta (personaje, nivel, servidor)
   const previa = lista.find((c) => c.usuario.toLowerCase() === clave) || {};
   const resto = lista.filter((c) => c.usuario.toLowerCase() !== clave);
+  const pj = datos && (datos.personaje || datos.nivel != null)
+    ? { nombre: datos.personaje || '', nivel: datos.nivel != null ? datos.nivel : null }
+    : (previa.pj || null);
+  const serverNombre = (datos && datos.serverName) || previa.serverNombre || '';
   resto.unshift({
     usuario,
     password: recordar ? password : '',
     recordar: !!recordar,
     server: server || previa.server || 's1',
-    serverNombre: previa.serverNombre || '',
-    pj: previa.pj || null,
+    serverNombre,
+    pj,
   });
   guardarPrefs({
     usuario,
@@ -1198,8 +1281,16 @@ function recordarPersonaje(usuario, datos) {
   const lista = listaCuentas(p);
   const c = lista.find((x) => x.usuario.toLowerCase() === usuario.toLowerCase());
   if (!c) return;
-  c.pj = { nombre: datos.personaje || '', nivel: datos.nivel != null ? datos.nivel : null };
-  if (datos.serverName) c.serverNombre = datos.serverName;
+  const nuevoNombre = datos.personaje || '';
+  const nuevoNivel = datos.nivel != null ? datos.nivel : null;
+  const nuevoServer = datos.serverName || c.serverNombre || '';
+  const yaIgual = c.pj
+    && c.pj.nombre === nuevoNombre
+    && c.pj.nivel === nuevoNivel
+    && (c.serverNombre || '') === nuevoServer;
+  if (yaIgual) return;
+  c.pj = { nombre: nuevoNombre, nivel: nuevoNivel };
+  if (nuevoServer) c.serverNombre = nuevoServer;
   guardarPrefs({ usuario: p.usuario || '', password: p.password || '', recordar: !!p.recordar, cuentas: lista });
 }
 
@@ -1231,12 +1322,41 @@ ipcMain.handle('cuentas-borrar', (_evento, usuario) => borrarCuenta(usuario));
 
 ipcMain.handle('app-version', () => app.getVersion());
 
-app.whenReady().then(() => {
-  crearVentana();
-  initActualizaciones({
-    hayVentanasJuego: () => ventanasJuego.length > 0,
+const instanciaUnica = app.requestSingleInstanceLock();
+if (!instanciaUnica) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (ventanaLogin && !ventanaLogin.isDestroyed()) {
+      try {
+        if (ventanaLogin.isMinimized()) ventanaLogin.restore();
+        ventanaLogin.show();
+        ventanaLogin.focus();
+      } catch (e) { /* sin foco */ }
+      return;
+    }
+    if (ventanasJuego.length < MAX_VENTANAS) {
+      crearVentana();
+      return;
+    }
+    const primera = ventanasJuego.find((v) => v.win && !v.win.isDestroyed());
+    if (primera) {
+      try {
+        if (primera.win.isMinimized()) primera.win.restore();
+        primera.win.show();
+        primera.win.focus();
+      } catch (e) { /* sin foco */ }
+    }
   });
-});
+
+  app.whenReady().then(() => {
+    leerPrefs(); // precarga caché y respaldo al iniciar
+    crearVentana();
+    initActualizaciones({
+      hayVentanasJuego: () => ventanasJuego.length > 0,
+    });
+  });
+}
 // si se cierra el launcher, el macro no puede quedarse clicando solo
 app.on('before-quit', () => {
   if (macroProc) {

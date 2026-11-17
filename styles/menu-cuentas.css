@@ -106,6 +106,23 @@ body {
   text-overflow: ellipsis;
 }
 
+.mc-badge {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(77, 171, 247, 0.16);
+  border: 1px solid rgba(77, 171, 247, 0.35);
+  color: #9ecbff;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mc-fila--abierta .mc-ico {
+  background: #1f3b5c;
+  box-shadow: inset 0 0 0 1px rgba(77, 171, 247, 0.4);
+}
+
 .mc-del {
   flex: 0 0 auto;
   width: 22px;
