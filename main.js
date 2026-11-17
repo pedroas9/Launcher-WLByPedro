@@ -126,13 +126,14 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 // Como máximo 6 clientes abiertos a la vez.
 const MAX_VENTANAS = 6;
 const ventanasJuego = []; // { win, vista, datos, credenciales, slot, particion, metricas }
+const slotsReservados = new Set(); // evita condición de carrera mientras conectar() está en curso
 
 // El primer hueco reutiliza la partición antigua para no perder lo ya guardado
 const particionDe = (slot) => (slot === 1 ? 'persist:wl-juego' : 'persist:wl-juego-' + slot);
 
 const slotLibre = () => {
   for (let n = 1; n <= MAX_VENTANAS; n++) {
-    if (!ventanasJuego.some((v) => v.slot === n)) return n;
+    if (!ventanasJuego.some((v) => v.slot === n) && !slotsReservados.has(n)) return n;
   }
   return 0;
 };
@@ -473,14 +474,11 @@ async function conectar(cuenta, password, particion) {
 
 // ---------- IPC ----------
 ipcMain.handle('jugar', async (evento, { cuenta, password, recordar }) => {
+  const slot = slotLibre();
+  if (!slot) return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas. Cierra una para abrir otra.' };
+  slotsReservados.add(slot);
   try {
-    if (ventanasJuego.length >= MAX_VENTANAS) {
-      throw new Error('Máximo ' + MAX_VENTANAS + ' cuentas abiertas. Cierra una para abrir otra.');
-    }
-    const slot = slotLibre();
-    if (!slot) throw new Error('Máximo ' + MAX_VENTANAS + ' cuentas abiertas.');
     const particion = particionDe(slot);
-
     const datos = await conectar(cuenta, password, particion);
     // se guarda aquí porque al entrar se cierra la ventana del login
     guardarCuenta(cuenta, password, recordar);
@@ -492,6 +490,8 @@ ipcMain.handle('jugar', async (evento, { cuenta, password, recordar }) => {
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e.message || 'Error desconocido.' };
+  } finally {
+    slotsReservados.delete(slot);
   }
 });
 
@@ -627,20 +627,17 @@ ipcMain.handle('menu-cuenta-borrar', (_evento, usuario) => {
 
 // Pulsar una cuenta del menú: conecta con sus datos guardados y abre el juego
 ipcMain.handle('menu-cuenta-abrir', async (_evento, usuario) => {
+  const slot = slotLibre();
+  if (!slot) return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas.' };
+  slotsReservados.add(slot);
   try {
-    if (ventanasJuego.length >= MAX_VENTANAS) {
-      return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas.' };
-    }
     const c = listaCuentas(leerPrefs()).find(
       (x) => x.usuario.toLowerCase() === String(usuario || '').toLowerCase()
     );
     if (!c) return { ok: false, error: 'Esa cuenta ya no está guardada.' };
     if (!c.password) return { ok: false, error: 'Esa cuenta no tiene la contraseña guardada.' };
 
-    const slot = slotLibre();
-    if (!slot) return { ok: false, error: 'Máximo ' + MAX_VENTANAS + ' cuentas abiertas.' };
     const particion = particionDe(slot);
-
     const datos = await conectar(c.usuario, c.password, particion);
     guardarCuenta(c.usuario, c.password, true, c.server);
     const abierto = abrirJuego({ datos, credenciales: { cuenta: c.usuario, password: c.password }, slot, particion });
@@ -649,6 +646,8 @@ ipcMain.handle('menu-cuenta-abrir', async (_evento, usuario) => {
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e.message || 'No se pudo conectar.' };
+  } finally {
+    slotsReservados.delete(slot);
   }
 });
 
