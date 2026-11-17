@@ -121,13 +121,15 @@
       if (btn.disabled) return;
       btn.disabled = true;
       try {
-        const res = await wl.reiniciarJuego && wl.reiniciarJuego();
-        if (res && res.ok === false) {
-          btn.title = res.error || 'Error';
+        const res = wl.reiniciarJuego ? await wl.reiniciarJuego() : null;
+        if (!res || !res.ok) {
+          btn.title = (res && res.error) || 'Error al reconectar';
           setTimeout(() => { btn.title = 'Reconectar esta cuenta'; }, 2500);
           btn.disabled = false;
         }
       } catch (e) {
+        btn.title = 'Error al reconectar';
+        setTimeout(() => { btn.title = 'Reconectar esta cuenta'; }, 2500);
         btn.disabled = false;
       }
     });
